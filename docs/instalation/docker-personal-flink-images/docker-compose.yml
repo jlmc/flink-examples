@@ -1,0 +1,33 @@
+
+services:
+  jobmanager-master:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: jobmanager-master
+    ports:
+      - "8081:8081"   # Flink Web UI
+    environment:
+      JOB_MANAGER_RPC_ADDRESS: jobmanager-master
+      FLINK_HOME: /opt/flink
+    command: bash -c "/opt/flink/bin/jobmanager.sh start-foreground"
+    networks:
+      - flink-net
+
+  taskmanager:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: taskmanager
+    depends_on:
+      - jobmanager-master
+    environment:
+      JOB_MANAGER_RPC_ADDRESS: jobmanager-master
+      FLINK_HOME: /opt/flink
+    command: bash -c "/opt/flink/bin/taskmanager.sh start-foreground"
+    networks:
+      - flink-net
+
+networks:
+  flink-net:
+    driver: bridge

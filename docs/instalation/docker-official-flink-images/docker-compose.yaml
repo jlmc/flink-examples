@@ -1,0 +1,40 @@
+version: "3.9"
+
+services:
+  jobmanager-master:
+    image: apache/flink:2.1.0-scala_2.12-java21  # Official Flink image
+    container_name: jobmanager-master
+    ports:
+      - "8081:8081"   # Flink Web UI
+    environment:
+      JOB_MANAGER_RPC_ADDRESS: jobmanager-master
+    command: jobmanager
+    networks:
+      - flink-net
+
+  # docker-compose up -d --scale taskmanager=2
+  taskmanager-1:
+    image: apache/flink:2.1.0-scala_2.12-java21  # Official Flink image
+    container_name: taskmanager-1
+    depends_on:
+      - jobmanager-master
+    environment:
+      JOB_MANAGER_RPC_ADDRESS: jobmanager-master
+    command: taskmanager
+    networks:
+      - flink-net
+
+  taskmanager-2:
+    image: apache/flink:2.1.0-scala_2.12-java21  # Official Flink image
+    container_name: taskmanager-2
+    depends_on:
+      - jobmanager-master
+    environment:
+      JOB_MANAGER_RPC_ADDRESS: jobmanager-master
+    command: taskmanager
+    networks:
+      - flink-net
+
+networks:
+  flink-net:
+    driver: bridge

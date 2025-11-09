@@ -7,3 +7,4 @@ this is the official flink resources list.
 # Installing in a docker container
 
 - [Install flink in personal docker container](docker-personal-flink-images)
+- [running flink in official docker container](docker-official-flink-images)

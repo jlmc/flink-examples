@@ -14,3 +14,13 @@ Flick is the next generation Engine for stream processing. It can considered as 
 * Robust Fault-tolerance, application can restart exactly from same point where it failed.
 * Has rich set of libraries - for Graph processing, Machine learning, string handling, relational apis etc.
 * Flink's application state is rescalable, possible to add resources while app is running. Also maintains exactly once semantics.
+
+
+# Installing in a docker container
+
+- [Install flink in personal docker container](docs/instalation/docker-personal-flink-images)
+- [running flink in official docker container](docs/instalation/docker-official-flink-images)
+
+# Architecture
+
+- [architecture small description](docs/architecture)

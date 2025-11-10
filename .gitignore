@@ -162,7 +162,8 @@ fabric.properties
 .LSOverride
 
 # Icon must end with two \r
-Icon
+Icon
+
 
 # Thumbnails
 ._*
@@ -188,3 +189,54 @@ Temporary Items
 *.icloud
 
 # End of https://www.toptal.com/developers/gitignore/api/intellij+all,macos,eclipse
+
+#
+# Maven
+#
+###################
+*.class
+
+# Package Files (*.jar, *.war, *.ear, *.zip, *.tar, etc.)
+# Exclude the generated artifacts
+target/
+
+# Log and temporary files
+log/
+temp/
+
+#
+# IntelliJ IDEA
+#
+###################
+# Covers JetBrains IDEs: Idea, WebStorm, PyCharm, RubyMine, etc.
+.idea/
+*.iws
+*.iml
+*.ipr
+# Junit run configurations
+.run/
+
+#
+# Eclipse
+#
+###################
+.classpath
+.project
+.settings/
+bin/
+# Optional: if you use a local M2 repository outside of the standard location
+.apt_generated
+.factorypath
+
+#
+# VS Code
+#
+###################
+.vscode/
+
+#
+# Operating System Files
+#
+###################
+.DS_Store
+Thumbs.db

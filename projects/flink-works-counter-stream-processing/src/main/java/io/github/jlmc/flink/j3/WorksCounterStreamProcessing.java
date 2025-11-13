@@ -15,11 +15,16 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.util.Optional;
 
+// ENV JAVA_OPTS="-Dlog4j.configurationFile=/Users/jlmc/IdeaProjects/apache-flink/projects/flink-works-counter-stream-processing/src/main/resources/log4j2.json.xml"
 public class WorksCounterStreamProcessing {
 
     public static final Logger LOGGER = LoggerFactory.getLogger(WorksCounterStreamProcessing.class);
 
     public static void main(String[] args) throws Exception {
+        //boolean jsonLogging = true; // or false
+        //LoggingInitializer.initLogging(jsonLogging);
+
+
         String inputPath = getSourceFilePath(args).orElse(null);
         if (inputPath == null) {
             LOGGER.error("Missing required parameter 'sourceFilePath'");
@@ -32,6 +37,8 @@ public class WorksCounterStreamProcessing {
         // 1️⃣ Create the execution environment
         final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         // ⚠️ CRITICAL: Set the execution mode to STREAMING for bounded input processing
+        // we can set the runtime mode also using a job parameter
+        // bin/flink run -Dexecution.runtime-mode=BATCH
         env.setRuntimeMode(RuntimeExecutionMode.STREAMING);
         env.setParallelism(1); // Setting parallelism to 1 simplifies local output reading
 

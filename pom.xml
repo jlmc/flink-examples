@@ -34,5 +34,6 @@
         <module>projects/flink-hello-world</module>
         <module>projects/flink-works-counter-batch-processing</module>
         <module>projects/flink-works-counter-stream-processing</module>
+        <module>projects/flink-works-counter-stream-socket-processing</module>
     </modules>
 </project>

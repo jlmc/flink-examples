@@ -1,0 +1,19 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="WorksCounterStreamProcessing" type="Application" factoryName="Application" nameIsGenerated="true">
+    <envs>
+      <env name="JAVA_OPTS" value="-Dlog4j.configurationFile=$PROJECT_DIR$/projects/flink-works-counter-stream-processing/src/main/resources/log4j2.json.xml" />
+    </envs>
+    <option name="INCLUDE_PROVIDED_SCOPE" value="true" />
+    <option name="MAIN_CLASS_NAME" value="io.github.jlmc.flink.j3.WorksCounterStreamProcessing" />
+    <module name="flink-works-counter-stream-processing" />
+    <extension name="coverage">
+      <pattern>
+        <option name="PATTERN" value="io.github.jlmc.flink.j3.*" />
+        <option name="ENABLED" value="true" />
+      </pattern>
+    </extension>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

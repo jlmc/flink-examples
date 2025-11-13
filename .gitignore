@@ -214,7 +214,7 @@ temp/
 *.iml
 *.ipr
 # Junit run configurations
-.run/
+#.run/
 
 #
 # Eclipse

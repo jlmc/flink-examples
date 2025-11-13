@@ -32,5 +32,6 @@
 
     <modules>
         <module>projects/flink-hello-world</module>
+        <module>projects/flink-works-counter-batch-processing</module>
     </modules>
 </project>

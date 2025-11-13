@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN" monitorInterval="60">
+
+    <!-- ========================================================= -->
+    <!-- Log4j2 configuration for patient-adt-processing-job (Flink) -->
+    <!-- ========================================================= -->
+    <Appenders>
+
+        <!-- Console Appender -->
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss,SSS} %-5p [%t] %c{1} - %m%n"/>
+        </Console>
+
+        <!-- (Optional) Rolling File Appender -->
+        <RollingFile name="File"
+                     fileName="logs/patient-adt-processing-job.log"
+                     filePattern="logs/patient-adt-processing-job-%d{yyyy-MM-dd}.log.gz">
+            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss,SSS} %-5p [%t] %c{1} - %m%n"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+                <SizeBasedTriggeringPolicy size="10 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="7"/>
+        </RollingFile>
+
+    </Appenders>
+
+    <Loggers>
+
+        <!-- Root logger -->
+        <Root level="info">
+            <AppenderRef ref="Console"/>
+            <!-- Uncomment to also log to file -->
+            <!-- <AppenderRef ref="File"/> -->
+        </Root>
+
+        <!-- Application-specific logs -->
+        <Logger name="io.github.jlmc" level="debug" additivity="false">
+            <AppenderRef ref="Console"/>
+        </Logger>
+
+        <!-- Framework/library logs -->
+        <Logger name="org.apache.flink" level="info"/>
+        <Logger name="org.apache.kafka" level="info"/>
+        <Logger name="org.apache.http" level="warn"/>
+
+        <!-- Suppress noisy logs -->
+        <Logger name="org.apache.zookeeper" level="error"/>
+        <Logger name="org.apache.curator" level="error"/>
+        <Logger name="org.apache.flink.runtime.taskmanager.Task" level="info"/>
+    </Loggers>
+
+</Configuration>

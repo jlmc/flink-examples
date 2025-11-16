@@ -50,8 +50,8 @@ public class FlinkDataStreamApiAndJava8LambdaExpression {
     public static void main(String[] args) throws Exception {
 
         // 1️⃣ Extract all configuration cleanly
-        SocketConfiguration config = resolveSocketConfig(args);
-        LOGGER.info("Using socket source: {}:{}", config.host(), config.port());
+        SocketConfiguration socketConfiguration = resolveSocketConfigUsingParamTool(args);
+        LOGGER.info("Using socket source: {}:{}", socketConfiguration.host(), socketConfiguration.port());
 
         // 1️⃣ Create the execution environment
         final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
@@ -73,12 +73,26 @@ public class FlinkDataStreamApiAndJava8LambdaExpression {
         //     Job → Configuration → Global Job Parameters
         //
         // This is useful only when you need operators to read parameters inside open()
+        // public class MyRichMap extends RichMapFunction<String, String> {
+        //    @Override
+        //    public void open(Configuration parameters) {
+        //        ParameterTool p = (ParameterTool) getRuntimeContext()
+        //                .getExecutionConfig()
+        //                .getGlobalJobParameters();
+        //
+        //        String host = p.get("host");
+        //        int port = p.getInt("port");
+        //
+        //        System.out.println("Host: " + host);
+        //        System.out.println("Port: " + port);
+        //    }
+        //}
         // Otherwise, the line is optional.
         // ----------------------------------------------------------------------
         env.getConfig().setGlobalJobParameters(ParameterTool.fromArgs(args));
 
         // 2️⃣ Define the file source using the modern Flink API (Socket)
-        env.socketTextStream("localhost", 9999)
+        env.socketTextStream(socketConfiguration.host(), socketConfiguration.port())
                 .flatMap((String line, Collector<Tuple2<String, Long>> collector) -> {
                     String normalizedLine = line.trim().toLowerCase()
                             .replaceAll("[^a-z0-9\\s]", "");
@@ -131,7 +145,7 @@ public class FlinkDataStreamApiAndJava8LambdaExpression {
     // -----------------------------------------------------------------------------
     //  Helper method: Resolves host + port using ParameterTool + env vars + defaults
     // -----------------------------------------------------------------------------
-    public static SocketConfiguration resolveSocketConfigUsingParamTool(String[] args) {
+    private static SocketConfiguration resolveSocketConfigUsingParamTool(String[] args) {
 
         // Step 1: Load CLI params
         ParameterTool cliParams = ParameterTool.fromArgs(args);

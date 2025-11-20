@@ -210,7 +210,6 @@ temp/
 ###################
 # Covers JetBrains IDEs: Idea, WebStorm, PyCharm, RubyMine, etc.
 .idea/
-*.iws
 *.iml
 *.ipr
 # Junit run configurations
@@ -222,11 +221,8 @@ temp/
 ###################
 .classpath
 .project
-.settings/
-bin/
 # Optional: if you use a local M2 repository outside of the standard location
 .apt_generated
-.factorypath
 
 #
 # VS Code
@@ -238,5 +234,7 @@ bin/
 # Operating System Files
 #
 ###################
-.DS_Store
 Thumbs.db
+
+## flink
+dependency-reduced-pom.xml

@@ -3,6 +3,8 @@ version: "3.9"
 services:
   jobmanager-master:
     image: apache/flink:2.1.0-scala_2.12-java21  # Official Flink image
+    #image: apache/flink:1.20.3-scala_2.12-java17  # Official Flink image 1.20.3-scala_2.12-java17, 1.20-scala_2.12-java17, 1.20.3-java17, 1.20-java17⁠
+    platform: linux/amd64
     container_name: jobmanager-master
     ports:
       - "8081:8081"   # Flink Web UI
@@ -15,6 +17,7 @@ services:
   # docker-compose up -d --scale taskmanager=2
   taskmanager-1:
     image: apache/flink:2.1.0-scala_2.12-java21  # Official Flink image
+    platform: linux/amd64
     container_name: taskmanager-1
     depends_on:
       - jobmanager-master
@@ -26,6 +29,7 @@ services:
 
   taskmanager-2:
     image: apache/flink:2.1.0-scala_2.12-java21  # Official Flink image
+    platform: linux/amd64
     container_name: taskmanager-2
     depends_on:
       - jobmanager-master

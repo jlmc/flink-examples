@@ -2,8 +2,8 @@ version: "3.9"
 
 services:
   jobmanager-master:
-    image: apache/flink:2.1.0-scala_2.12-java21  # Official Flink image
-    #image: apache/flink:1.20.3-scala_2.12-java17  # Official Flink image 1.20.3-scala_2.12-java17, 1.20-scala_2.12-java17, 1.20.3-java17, 1.20-java17⁠
+    # image: apache/flink:2.1.0-scala_2.12-java21  # Official Flink image
+    image: apache/flink:1.20.3-scala_2.12-java17  # Official Flink image 1.20.3-scala_2.12-java17, 1.20-scala_2.12-java17, 1.20.3-java17, 1.20-java17⁠
     platform: linux/amd64
     container_name: jobmanager-master
     ports:
@@ -11,12 +11,15 @@ services:
     environment:
       JOB_MANAGER_RPC_ADDRESS: jobmanager-master
     command: jobmanager
+    volumes:
+      - ./jobs:/opt/flink/usrlib   # <-- mount host folder with JARs
     networks:
       - flink-net
 
   # docker-compose up -d --scale taskmanager=2
   taskmanager-1:
-    image: apache/flink:2.1.0-scala_2.12-java21  # Official Flink image
+    # image: apache/flink:2.1.0-scala_2.12-java21  # Official Flink image
+    image: apache/flink:1.20.3-scala_2.12-java17  # Official Flink image
     platform: linux/amd64
     container_name: taskmanager-1
     depends_on:
@@ -24,11 +27,14 @@ services:
     environment:
       JOB_MANAGER_RPC_ADDRESS: jobmanager-master
     command: taskmanager
+    volumes:
+      - ./jobs:/opt/flink/usrlib   # <-- mount host folder with JARs
     networks:
       - flink-net
 
   taskmanager-2:
-    image: apache/flink:2.1.0-scala_2.12-java21  # Official Flink image
+    # image: apache/flink:2.1.0-scala_2.12-java21  # Official Flink image
+    image: apache/flink:1.20.3-scala_2.12-java17  # Official Flink image
     platform: linux/amd64
     container_name: taskmanager-2
     depends_on:
@@ -36,6 +42,8 @@ services:
     environment:
       JOB_MANAGER_RPC_ADDRESS: jobmanager-master
     command: taskmanager
+    volumes:
+      - ./jobs:/opt/flink/usrlib   # <-- mount host folder with JARs
     networks:
       - flink-net
 

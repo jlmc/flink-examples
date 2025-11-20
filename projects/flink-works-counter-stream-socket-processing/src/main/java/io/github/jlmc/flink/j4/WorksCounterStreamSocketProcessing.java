@@ -2,6 +2,7 @@ package io.github.jlmc.flink.j4;
 
 import org.apache.flink.api.common.RuntimeExecutionMode;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
@@ -28,6 +29,12 @@ public class WorksCounterStreamSocketProcessing {
     public static void main(String[] args) throws Exception {
         // 1️⃣ Create the execution environment
         final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+
+        SocketConfiguration socketConfiguration = resolveSocketConfigUsingParamTool(args);
+        LOGGER.info("Using socket source: {}:{}", socketConfiguration.host(), socketConfiguration.port());
+
+
+        env.getConfig().setGlobalJobParameters(ParameterTool.fromArgs(args));
         // ⚠️ CRITICAL: Set the execution mode to STREAMING for bounded input processing
         // we can set the runtime mode also using a job parameter
         // bin/flink run -Dexecution.runtime-mode=BATCH
@@ -36,7 +43,7 @@ public class WorksCounterStreamSocketProcessing {
 
         // 2️⃣ Define the file source using the modern Flink API (Socket)
 
-        DataStreamSource<String> sourceStream = env.socketTextStream("localhost", 9999);
+        DataStreamSource<String> sourceStream = env.socketTextStream(socketConfiguration.host(), socketConfiguration.port());
 
         // 4️⃣ Apply transformations: KeyBy the word and sum the counts
         DataStream<Tuple2<String, Long>> flatMapOperator = sourceStream
@@ -54,5 +61,30 @@ public class WorksCounterStreamSocketProcessing {
 
         // 6️⃣ Execute the job
         env.execute("Flink Works Counter Batch Processing");
+    }
+
+
+    // -----------------------------------------------------------------------------
+    //  Helper method: Resolves host + port using ParameterTool + env vars + defaults
+    // -----------------------------------------------------------------------------
+    private static SocketConfiguration resolveSocketConfigUsingParamTool(String[] args) {
+
+        // Step 1: Load CLI params
+        ParameterTool cliParams = ParameterTool.fromArgs(args);
+
+        // Step 2: Load env vars (convert to ParameterTool)
+        ParameterTool envParams = ParameterTool.fromMap(System.getenv());
+
+        // Step 3: Merge CLI > ENV > defaults
+        // CLI has highest priority
+        String host =
+                cliParams.get("host",
+                        envParams.get("FLINK_SOCKET_HOST", "localhost"));
+
+        int port =
+                cliParams.getInt("port",
+                        Integer.parseInt(envParams.get("FLINK_SOCKET_PORT", "9999")));
+
+        return new SocketConfiguration(host, port);
     }
 }

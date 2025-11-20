@@ -1,26 +1,33 @@
 # Apache Flink
 
-Apache Flink is an open source stream processing framework for distributed, high-performance always available and data streaming applications.
+Apache Flink is an open-source stream processing framework designed for distributed, high-performance, and always-on data streaming applications.
 
-Supports for Batch processing, Graph processing, Iterative processing.
+It supports **batch processing**, **graph processing**, and **iterative processing**. Flink is widely recognized for its **extremely fast stream processing capabilities**.
 
-famous for very fast stream processing.
+Flink is often considered the next-generation engine for stream processing—think of it as "4G for Big Data processing."
 
-Flick is the next generation Engine for stream processing. It can considered as 4G for Big data processing.
+**Key Features:**
+- **Performance:** Flink > Spark > Hadoop in terms of speed for streaming workloads.
+- **High Throughput & Low Latency:** Can process millions of messages per second in real-time.
+- **Fault Tolerance:** Provides robust fault-tolerance; applications can restart exactly from the point of failure.
+- **Rich Libraries:** Includes libraries for graph processing, machine learning, string handling, relational APIs, and more.
+- **Scalable State Management:** Application state is rescalable. Resources can be added dynamically while maintaining **exactly-once semantics**.
 
-* Speed wise: Flink > Spark > Hadoop
-* Can process millions do messages per second in real time.
-* Flink gives us low latency and high throughput applications.
-* Robust Fault-tolerance, application can restart exactly from same point where it failed.
-* Has rich set of libraries - for Graph processing, Machine learning, string handling, relational apis etc.
-* Flink's application state is rescalable, possible to add resources while app is running. Also maintains exactly once semantics.
+---
 
+# Installing in a Docker Container
 
-# Installing in a docker container
+- [Install Flink in a personal Docker container](docs/instalation/docker-personal-flink-images)
+- [Run Flink in the official Docker container](docs/instalation/docker-official-flink-images)
 
-- [Install flink in personal docker container](docs/instalation/docker-personal-flink-images)
-- [running flink in official docker container](docs/instalation/docker-official-flink-images)
+---
 
 # Architecture
 
-- [architecture small description](docs/architecture)
+- [Architecture Overview](docs/architecture)
+
+---
+
+# Deployment
+
+- [How to deploy a Flink job](docs/deploy-flink-job/README.md)

@@ -16,22 +16,22 @@ Flink is often considered the next-generation engine for stream processing—thi
 ---
 
 ## Installing in a Docker Container
-
 - [Install Flink in a personal Docker container](docs/instalation/docker-personal-flink-images)
 - [Run Flink in the official Docker container](docs/instalation/docker-official-flink-images)
 
 ---
 
 ## Architecture
-
 - [Architecture Overview](docs/architecture)
 
 ---
 
 ## Deployment
-
 - [How to deploy a Flink job](docs/deploy-flink-job/README.md)
 
 ## Deploy modes
-
 - [deploy modes](docs/deploy-modes/README.md)
+
+---
+## Flink Local Environment for Development
+- [Flink Local Environment for Development](projects/flink-local-environment-for-develop)

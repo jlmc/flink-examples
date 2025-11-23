@@ -21,5 +21,6 @@
         <module>projects/flink-works-counter-stream-processing</module>
         <module>projects/flink-works-counter-stream-socket-processing</module>
         <module>projects/flink-data-stream-api-and-Java-8-Lambda-expression</module>
+        <module>projects/flink-local-environment-for-develop</module>
     </modules>
 </project>

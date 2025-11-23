@@ -1,13 +1,14 @@
 package io.github.jlmc.flink.j4;
 
-import org.apache.flink.api.common.RuntimeExecutionMode;
+import org.apache.flink.api.common.typeinfo.Types;
 import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.api.java.utils.ParameterTool;
-import org.apache.flink.streaming.api.datastream.DataStream;
-import org.apache.flink.streaming.api.datastream.DataStreamSource;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.util.Collector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Arrays;
 
 /**
  * To run this example, we must open a listening TCP socket (server)
@@ -21,76 +22,39 @@ import org.slf4j.LoggerFactory;
  * - 'k' (keep-open): Keeps the connection open for multiple clients or after a disconnect (useful for testing).
  * * After running the command, the terminal will be ready to receive (and send) data.
  * You can then start your client/server program which will connect to this port.
+ * ---
+ * ## About the logging
+ * ```bash
+ * export LOG_JSON=true
+ * if [ "$LOG_JSON" = "true" ]; then
+ *     FLINK_LOG_CONF="-Dlog4j.configurationFile=log4j2-json.xml"
+ * else
+ *     FLINK_LOG_CONF="-Dlog4j.configurationFile=log4j2-text.xml"
+ * fi
+ *
+ * flink run $FLINK_LOG_CONF -c my.job.Class my-flink-job.jar
+ * ```
  */
 public class FlinkLocalEnvironmentForDevelopJob {
 
     public static final Logger LOGGER = LoggerFactory.getLogger(FlinkLocalEnvironmentForDevelopJob.class);
 
-    public static void main(String[] args) {
-        // 1️⃣ Create the execution environment
-        final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+    public static void main(String[] args) throws Exception {
+        Configuration conf = new Configuration();
+        final StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(conf);
 
-    }
+        env.socketTextStream("localhost", 9999)
+                .flatMap((String line, Collector<String> out) -> {
 
-    public static void main2(String[] args) throws Exception {
-        // 1️⃣ Create the execution environment
-        final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+                    String[] splits = line.split("\\s+"); // split by space
+                    Arrays.stream(splits).forEach(out::collect);
 
-        SocketConfiguration socketConfiguration = resolveSocketConfigUsingParamTool(args);
-        LOGGER.info("Using socket source: {}:{}", socketConfiguration.host(), socketConfiguration.port());
+                }, Types.STRING)
+                .map(word -> Tuple2.of(word, 1L), Types.TUPLE(Types.STRING, Types.LONG))
+                .keyBy(t -> t.f0)
+                .sum(1)
+                .print();
 
-
-        env.getConfig().setGlobalJobParameters(ParameterTool.fromArgs(args));
-        // ⚠️ CRITICAL: Set the execution mode to STREAMING for bounded input processing
-        // we can set the runtime mode also using a job parameter
-        // bin/flink run -Dexecution.runtime-mode=BATCH
-        env.setRuntimeMode(RuntimeExecutionMode.STREAMING);
-        env.setParallelism(1); // Setting parallelism to 1 simplifies local output reading
-
-        // 2️⃣ Define the file source using the modern Flink API (Socket)
-
-        DataStreamSource<String> sourceStream = env.socketTextStream(socketConfiguration.host(), socketConfiguration.port());
-
-        // 4️⃣ Apply transformations: KeyBy the word and sum the counts
-        DataStream<Tuple2<String, Long>> flatMapOperator = sourceStream
-                .flatMap(new Tokenizer())
-                .name("Tokenizer");
-
-        DataStream<Tuple2<String, Long>>  wordCounts =
-                flatMapOperator
-                        .keyBy(value -> value.f0) // keyBy the word (field 0)
-                        .sum(1) // sum the count (field 1)
-                        .name("Word Counts");
-
-        // 5️⃣ Sink: output the result
-        wordCounts.print().name("Result Sink");
-
-        // 6️⃣ Execute the job
-        env.execute("Flink Works Counter Batch Processing");
-    }
-
-
-    // -----------------------------------------------------------------------------
-    //  Helper method: Resolves host + port using ParameterTool + env vars + defaults
-    // -----------------------------------------------------------------------------
-    private static SocketConfiguration resolveSocketConfigUsingParamTool(String[] args) {
-
-        // Step 1: Load CLI params
-        ParameterTool cliParams = ParameterTool.fromArgs(args);
-
-        // Step 2: Load env vars (convert to ParameterTool)
-        ParameterTool envParams = ParameterTool.fromMap(System.getenv());
-
-        // Step 3: Merge CLI > ENV > defaults
-        // CLI has highest priority
-        String host =
-                cliParams.get("host",
-                        envParams.get("FLINK_SOCKET_HOST", "localhost"));
-
-        int port =
-                cliParams.getInt("port",
-                        Integer.parseInt(envParams.get("FLINK_SOCKET_PORT", "9999")));
-
-        return new SocketConfiguration(host, port);
+        env.execute("Flink Local Environment For Develop Job");
     }
 }

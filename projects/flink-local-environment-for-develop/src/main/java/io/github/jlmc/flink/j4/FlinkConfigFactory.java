@@ -17,9 +17,6 @@ public class FlinkConfigFactory {
         //conf.set(ConfigOptions.key("taskmanager.numberOfTaskSlots").intType().defaultValue(4), 4);
         conf.set(TaskManagerOptions.NUM_TASK_SLOTS, 4);
 
-
-
-
         // Memory
         conf.setString("taskmanager.memory.process.size", "1024m");
         conf.setString("jobmanager.memory.process.size", "1024m");

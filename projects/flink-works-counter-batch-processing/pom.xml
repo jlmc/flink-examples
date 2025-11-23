@@ -13,6 +13,7 @@
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <maven.compiler.release>${java.version}</maven.compiler.release>
+        <log4j-slf4j-impl.version>2.23.1</log4j-slf4j-impl.version>
     </properties>
 
     <!--
@@ -61,13 +62,13 @@
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-slf4j-impl</artifactId>
-            <version>2.20.0</version>
+            <version>${log4j-slf4j-impl.version}</version>
         </dependency>
         <!-- Explicitly including the log4j core implementation, often needed for runnable JARs -->
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-core</artifactId>
-            <version>2.20.0</version>
+            <version>${log4j-slf4j-impl.version}</version>
         </dependency>
         <!--
         Removed non-standard dependencies:

@@ -5,8 +5,6 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.util.Collector;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 
@@ -36,8 +34,6 @@ import java.util.Arrays;
  * ```
  */
 public class FlinkLocalEnvironmentForDevelopJob {
-
-    public static final Logger LOGGER = LoggerFactory.getLogger(FlinkLocalEnvironmentForDevelopJob.class);
 
     public static void main(String[] args) throws Exception {
         Configuration conf = new Configuration();

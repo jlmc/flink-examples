@@ -1,0 +1,20 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="FlinkLocalEnvironmentForDevelopJob" type="Application" factoryName="Application" nameIsGenerated="true">
+    <envs>
+      <env name="FLINK_LOG_CONF" value="&quot;-Dlog4j.configurationFile=log4j2-text.xml&quot;" />
+      <env name="LOG_JSON" value="false" />
+    </envs>
+    <option name="INCLUDE_PROVIDED_SCOPE" value="true" />
+    <option name="MAIN_CLASS_NAME" value="io.github.jlmc.flink.j4.FlinkLocalEnvironmentForDevelopJob" />
+    <module name="flink-local-environment-for-develop" />
+    <extension name="coverage">
+      <pattern>
+        <option name="PATTERN" value="io.github.jlmc.flink.j4.*" />
+        <option name="ENABLED" value="true" />
+      </pattern>
+    </extension>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

@@ -24,6 +24,7 @@ Think of Flink as the **next-generation engine for stream processing**â€”like â€
 
     * [Deployment Modes](docs/deploy-modes/README.md)
 5. [Flink Local Environment for Development](#flink-local-environment-for-development)
+6. [Flink Operator Parallelism](docs/operator-parallelism/README.md)
 
 ---
 

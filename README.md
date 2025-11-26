@@ -11,6 +11,8 @@ It supports **batch processing**, **graph processing**, and **iterative processi
 *extremely fast stream processing capabilities**.
 Think of Flink as the **next-generation engine for stream processing**—like “4G for Big Data processing.”
 
+In this examples we are using the flink version [1.20](https://nightlies.apache.org/flink/flink-docs-release-1.20/docs/)
+
 ---
 
 ## Table of Contents

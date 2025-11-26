@@ -2,18 +2,20 @@ package io.github.jlmc.flink.j4;
 
 import org.apache.flink.api.common.RuntimeExecutionMode;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.configuration.RestOptions;
 import org.apache.flink.runtime.minicluster.MiniCluster;
 import org.apache.flink.runtime.minicluster.MiniClusterConfiguration;
+import org.apache.flink.streaming.api.datastream.DataStreamUtils;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.api.functions.sink.SinkFunction;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -23,14 +25,13 @@ class JavaCollectionSourcesConnectorExampleJobMiniClusterTest {
     private StreamExecutionEnvironment env;
 
     @BeforeAll
-    static void startMiniCluster() throws Exception {
-        Configuration flinkConfig = new Configuration();
+    static void startCluster() throws Exception {
 
-        MiniClusterConfiguration cfg = new MiniClusterConfiguration.Builder()
-                .setNumTaskManagers(1)
-                .setNumSlotsPerTaskManager(4)
-                .setConfiguration(flinkConfig)
-                .build();
+        MiniClusterConfiguration cfg =
+                new MiniClusterConfiguration.Builder()
+                        .setNumTaskManagers(1)
+                        .setNumSlotsPerTaskManager(4)
+                        .build();
 
         miniCluster = new MiniCluster(cfg);
         miniCluster.start();
@@ -43,36 +44,60 @@ class JavaCollectionSourcesConnectorExampleJobMiniClusterTest {
         }
     }
 
-    @BeforeEach
-    void setup() {
-        env = StreamExecutionEnvironment.createLocalEnvironment(4);
+    //@BeforeEach
+    void setupOld() {
+        // we should not use createLocalEnvironment
+        // otherwise the job will not be executed in MiniCluster
+        env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setRuntimeMode(RuntimeExecutionMode.BATCH); // Optional, use BATCH for deterministic tests
+    }
+
+    @BeforeEach
+    void setupInMiniCluster() throws Exception {
+        Configuration config = new Configuration();
+
+        config.setString("execution.target", "mini-cluster");
+        config.setInteger("taskmanager.numberOfTaskSlots", 4);
+
+        // Usar o MiniCluster como executor
+        //config.setString("rest.bind-address", "localhost");
+       // config.setInteger("rest.bind-port", miniCluster.getRestAddress().get().getPort());
+
+        config.set(RestOptions.BIND_ADDRESS, "localhost");
+        config.set(RestOptions.BIND_PORT,
+                String.valueOf(miniCluster.getRestAddress().get().getPort()));
+
+
+        //set(ConfigOption, Object)
+
+        env = StreamExecutionEnvironment.getExecutionEnvironment(config);
+
+        env.setRuntimeMode(RuntimeExecutionMode.BATCH);
+        env.setParallelism(1);
+    }
+
+    //@BeforeEach
+    void setUpWithMiniCluster() throws Exception {
+        Configuration config = new Configuration();
+        config.setString("execution.target", "mini-cluster");  // chave para funcionar!
+
+        config.setInteger("taskmanager.numberOfTaskSlots", 4);
+
+        env = StreamExecutionEnvironment.getExecutionEnvironment(config);
+        env.setRuntimeMode(RuntimeExecutionMode.BATCH);
+        env.setParallelism(1);
     }
 
     @Test
     void testFromCollectionWithMiniCluster() throws Exception {
-        List<String> collected = new CopyOnWriteArrayList<>();
-
         // Build your stream
         SingleOutputStreamOperator<String> stream = JavaCollectionSourcesConnectorExampleJob.buildWithFromCollection(
                 env,
                 new JavaCollectionSourcesConnectorExampleJob.Configuration("duke", 1)
         );
 
-        // Add a collecting sink
-        stream.addSink(new SinkFunction<>() {
-            @Override
-            public void invoke(String value) {
-                System.out.println(value);
-                collected.add(value);
-            }
-        });
-
-        // Execute the job using the MiniCluster
-        env.execute("MiniCluster Test");
-
-
-        Thread.sleep(10_000);
+        // Execute the job and collect the results synchronously
+        List<String> collected = stream.executeAndCollect("MiniCluster Test", 100);
 
         // Assertions
         assertEquals(List.of(

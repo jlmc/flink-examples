@@ -5,7 +5,6 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.RestOptions;
 import org.apache.flink.runtime.minicluster.MiniCluster;
 import org.apache.flink.runtime.minicluster.MiniClusterConfiguration;
-import org.apache.flink.streaming.api.datastream.DataStreamUtils;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.junit.jupiter.api.AfterAll;
@@ -13,10 +12,11 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
+import static io.github.jlmc.flink.j4.JavaCollectionSourcesConnectorExampleJob.buildWithFromCollection;
+import static io.github.jlmc.flink.j4.JavaCollectionSourcesConnectorExampleJob.buildWithFromElements;
+import static io.github.jlmc.flink.j4.JavaCollectionSourcesConnectorExampleJob.buildWithFromSequence;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class JavaCollectionSourcesConnectorExampleJobMiniClusterTest {
@@ -44,6 +44,8 @@ class JavaCollectionSourcesConnectorExampleJobMiniClusterTest {
         }
     }
 
+
+     @SuppressWarnings("unused")
     //@BeforeEach
     void setupOld() {
         // we should not use createLocalEnvironment
@@ -59,9 +61,9 @@ class JavaCollectionSourcesConnectorExampleJobMiniClusterTest {
         config.setString("execution.target", "mini-cluster");
         config.setInteger("taskmanager.numberOfTaskSlots", 4);
 
-        // Usar o MiniCluster como executor
-        //config.setString("rest.bind-address", "localhost");
-       // config.setInteger("rest.bind-port", miniCluster.getRestAddress().get().getPort());
+        // Using MiniCluster as executor
+        // config.setString("rest.bind-address", "localhost");
+        // config.setInteger("rest.bind-port", miniCluster.getRestAddress().get().getPort());
 
         config.set(RestOptions.BIND_ADDRESS, "localhost");
         config.set(RestOptions.BIND_PORT,
@@ -77,7 +79,8 @@ class JavaCollectionSourcesConnectorExampleJobMiniClusterTest {
     }
 
     //@BeforeEach
-    void setUpWithMiniCluster() throws Exception {
+    @SuppressWarnings("unused")
+    void setUpWithMiniCluster() {
         Configuration config = new Configuration();
         config.setString("execution.target", "mini-cluster");  // chave para funcionar!
 
@@ -88,10 +91,11 @@ class JavaCollectionSourcesConnectorExampleJobMiniClusterTest {
         env.setParallelism(1);
     }
 
+
     @Test
     void testFromCollectionWithMiniCluster() throws Exception {
         // Build your stream
-        SingleOutputStreamOperator<String> stream = JavaCollectionSourcesConnectorExampleJob.buildWithFromCollection(
+        SingleOutputStreamOperator<String> stream = buildWithFromCollection(
                 env,
                 new JavaCollectionSourcesConnectorExampleJob.Configuration("duke", 1)
         );
@@ -109,6 +113,49 @@ class JavaCollectionSourcesConnectorExampleJobMiniClusterTest {
                 "[f] => F",
                 "[g] => G",
                 "[h] => H"
+        ), collected);
+    }
+
+    @Test
+    void testfromElementsnWithMiniCluster() throws Exception {
+        // Build your stream
+        SingleOutputStreamOperator<String> stream = buildWithFromElements(
+                env,
+                new JavaCollectionSourcesConnectorExampleJob.Configuration("duke", 1)
+        );
+
+        // Execute the job and collect the results synchronously
+        List<String> collected = stream.executeAndCollect("MiniCluster Test", 100);
+
+        // Assertions
+        assertEquals(List.of(
+                "[a] => A",
+                "[b] => B",
+                "[c] => C",
+                "[d] => D",
+                "[e] => E",
+                "[f] => F",
+                "[g] => G",
+                "[h] => H"
+        ), collected);
+    }
+
+
+    @Test
+    void testFromSequenceWithMiniCluster() throws Exception {
+        // Build your stream
+        SingleOutputStreamOperator<String> stream = buildWithFromSequence(
+                env,
+                new JavaCollectionSourcesConnectorExampleJob.Configuration("duke", 1)
+        );
+
+        // Execute the job and collect the results synchronously
+        List<String> collected = stream.executeAndCollect("MiniCluster Test", 100);
+
+        // Assertions
+        assertEquals(List.of(
+                "Window closed at event-time 2000",
+                "Window closed at event-time 5000"
         ), collected);
     }
 }

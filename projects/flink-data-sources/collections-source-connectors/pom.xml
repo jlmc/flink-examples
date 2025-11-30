@@ -27,6 +27,15 @@
     </properties>
 
     <dependencies>
+        <!-- Flink Web UI dependency: only for development proposes -->
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-runtime-web</artifactId>
+            <version>${flink.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+
         <!-- Core Flink dependencies (No version needed thanks to flink-bom) -->
         <!-- Flink Streaming API is the standard way for both bounded (batch) and unbounded jobs -->
         <dependency>

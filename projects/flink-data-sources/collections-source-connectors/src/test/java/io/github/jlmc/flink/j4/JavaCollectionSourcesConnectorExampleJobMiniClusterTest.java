@@ -17,6 +17,7 @@ import java.util.List;
 import static io.github.jlmc.flink.j4.JavaCollectionSourcesConnectorExampleJob.buildWithFromCollection;
 import static io.github.jlmc.flink.j4.JavaCollectionSourcesConnectorExampleJob.buildWithFromElements;
 import static io.github.jlmc.flink.j4.JavaCollectionSourcesConnectorExampleJob.buildWithFromSequence;
+import static io.github.jlmc.flink.j4.JavaCollectionSourcesConnectorExampleJob.buildWithFromData;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class JavaCollectionSourcesConnectorExampleJobMiniClusterTest {
@@ -117,6 +118,30 @@ class JavaCollectionSourcesConnectorExampleJobMiniClusterTest {
     }
 
     @Test
+    void testFromSourceWithMiniCluster() throws Exception {
+        // Build your stream
+        SingleOutputStreamOperator<String> stream = buildWithFromData(
+                env,
+                new JavaCollectionSourcesConnectorExampleJob.Configuration("duke", 1)
+        );
+
+        // Execute the job and collect the results synchronously
+        List<String> collected = stream.executeAndCollect("MiniCluster Test", 100);
+
+        // Assertions
+        assertEquals(List.of(
+                "[a] => A",
+                "[b] => B",
+                "[c] => C",
+                "[d] => D",
+                "[e] => E",
+                "[f] => F",
+                "[g] => G",
+                "[h] => H"
+        ), collected);
+    }
+
+    @Test
     void testfromElementsnWithMiniCluster() throws Exception {
         // Build your stream
         SingleOutputStreamOperator<String> stream = buildWithFromElements(
@@ -144,10 +169,7 @@ class JavaCollectionSourcesConnectorExampleJobMiniClusterTest {
     @Test
     void testFromSequenceWithMiniCluster() throws Exception {
         // Build your stream
-        SingleOutputStreamOperator<String> stream = buildWithFromSequence(
-                env,
-                new JavaCollectionSourcesConnectorExampleJob.Configuration("duke", 1)
-        );
+        SingleOutputStreamOperator<String> stream = buildWithFromSequence(env);
 
         // Execute the job and collect the results synchronously
         List<String> collected = stream.executeAndCollect("MiniCluster Test", 100);

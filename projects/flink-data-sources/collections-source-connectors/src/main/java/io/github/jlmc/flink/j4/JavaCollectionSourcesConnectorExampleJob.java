@@ -14,6 +14,7 @@ import java.util.List;
 public class JavaCollectionSourcesConnectorExampleJob {
 
     static SingleOutputStreamOperator<String> buildWithFromCollection(StreamExecutionEnvironment env, Configuration configuration) {
+        @SuppressWarnings("deprecation") // we know that the fromCollection is deprecated, and we should use fromData instead, but this is only for demonstration purposes
         DataStreamSource<String> source = env.fromCollection(List.of("a", "b", "c", "d", "e", "f", "g", "h"));
 
         return source.rebalance()
@@ -21,13 +22,23 @@ public class JavaCollectionSourcesConnectorExampleJob {
                 .setParallelism(configuration.parallelism);
     }
 
-    static SingleOutputStreamOperator<String> buildWithFromElements(StreamExecutionEnvironment env, Configuration configuration) {
-        return env.fromElements("a", "b", "c", "d", "e", "f", "g", "h")
+    static SingleOutputStreamOperator<String> buildWithFromData(StreamExecutionEnvironment env, Configuration configuration) {
+        DataStreamSource<String> source = env.fromData(List.of("a", "b", "c", "d", "e", "f", "g", "h"));
+
+        return source.rebalance()
                 .map(JavaCollectionSourcesConnectorExampleJob::getFormatted, Types.STRING)
                 .setParallelism(configuration.parallelism);
     }
 
-    static SingleOutputStreamOperator<String> buildWithFromSequence(StreamExecutionEnvironment env, Configuration configuration) {
+    static SingleOutputStreamOperator<String> buildWithFromElements(StreamExecutionEnvironment env, Configuration configuration) {
+        @SuppressWarnings("deprecation") // we know that the fromElements is deprecated, and we should use fromData instead, but this is only for demonstration purposes
+        DataStreamSource<String> stringDataStreamSource = env.fromElements("a", "b", "c", "d", "e", "f", "g", "h");
+        return stringDataStreamSource
+                .map(JavaCollectionSourcesConnectorExampleJob::getFormatted, Types.STRING)
+                .setParallelism(configuration.parallelism);
+    }
+
+    static SingleOutputStreamOperator<String> buildWithFromSequence(StreamExecutionEnvironment env) {
         return env
         // Generates numbers from 1 to 10
                 .fromSequence(1, 10)

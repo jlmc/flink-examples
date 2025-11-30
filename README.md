@@ -77,3 +77,9 @@ This setup allows you to run Flink locally with:
 > Ideal for local development, debugging, and testing Flink jobs before deploying to production.
 
 ---
+
+## Flink data streams api
+
+- [From Collection, Elements, Sequence and Source](docs/data-streams-api/README.md)
+
+

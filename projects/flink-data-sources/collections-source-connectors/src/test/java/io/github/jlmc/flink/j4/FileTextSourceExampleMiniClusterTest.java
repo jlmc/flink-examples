@@ -1,5 +1,6 @@
 package io.github.jlmc.flink.j4;
 
+import io.github.jlmc.flink.j4.models.Person;
 import org.apache.flink.api.common.RuntimeExecutionMode;
 import org.apache.flink.client.program.ClusterClient;
 import org.apache.flink.runtime.minicluster.MiniCluster;
@@ -9,6 +10,7 @@ import org.apache.flink.test.junit5.InjectClusterClient;
 import org.apache.flink.test.junit5.InjectMiniCluster;
 import org.apache.flink.test.junit5.MiniClusterExtension;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -75,9 +77,8 @@ public class FileTextSourceExampleMiniClusterTest {
                 collected);
     }
 
-
     @Test
-    void testSocketTextBoundedStream(
+    void testFileTextBoundedStream(
             @InjectMiniCluster MiniCluster miniCluster,
             @InjectClusterClient ClusterClient<?> clusterClient,
             @TempDir Path tempDir          // JUnit injects a temporary folder
@@ -97,13 +98,7 @@ public class FileTextSourceExampleMiniClusterTest {
                             hello Duke
                             Great hello
                             """);
-                    case 2 -> Files.writeString(tempDir.resolve(file), """
-                            nothing else mater
-                            """);
-                    default -> {
-                        // No more files to add; shutdown scheduler
-                        executor.shutdown();
-                    }
+                    default -> executor.shutdown();
                 }
             } catch (Exception e) {
                 throw new RuntimeException(e);
@@ -135,5 +130,61 @@ public class FileTextSourceExampleMiniClusterTest {
                 ),
                 new HashSet<>(collected)
         );
+    }
+
+    @Test
+    void testCSVFileTextBoundedStream(
+            @InjectMiniCluster MiniCluster miniCluster,
+            @InjectClusterClient ClusterClient<?> clusterClient,
+            @TempDir Path tempDir          // JUnit injects a temporary folder
+    ) throws Exception {
+        AtomicInteger fileCounter = new AtomicInteger();
+        AtomicInteger recordCounter = new AtomicInteger();
+
+        Runnable addFileTask = () -> {
+            try {
+                int fileIdx = fileCounter.getAndIncrement();
+                int linesPerFile = 5; // can be any number
+                String fileName = String.format("part-%03d.csv", fileIdx);
+
+                StringBuilder content = fileContent(linesPerFile, recordCounter);
+
+                Files.writeString(tempDir.resolve(fileName), content.toString());
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        };
+
+        executor.scheduleAtFixedRate(addFileTask, 1, 2, TimeUnit.SECONDS);
+
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        env.setRuntimeMode(RuntimeExecutionMode.STREAMING);
+        env.setParallelism(1);
+        SingleOutputStreamOperator<Person> stream = TextFileSourceExample.buildBoundedCSVStream(
+                env,
+                tempDir.toString()
+        );
+
+        var collected = stream.executeAndCollect("MiniCluster Socket Test", 10);
+
+
+        System.out.println(collected);
+        Assertions.assertEquals(10, collected.size());
+    }
+
+    private static StringBuilder fileContent(int linesPerFile, AtomicInteger recordCounter) {
+        StringBuilder content = new StringBuilder();
+        for (int i = 0; i < linesPerFile; i++) {
+            int id = recordCounter.getAndIncrement();
+            String name = switch (i % 4) {
+                case 0 -> "Duke";
+                case 1 -> "Spiderman";
+                case 2 -> "Superman";
+                default -> "Batman";
+            };
+            int age = 20 + (id % 30); // just an example
+            content.append("%d,%d,%s%n".formatted(id, age, name));
+        }
+        return content;
     }
 }

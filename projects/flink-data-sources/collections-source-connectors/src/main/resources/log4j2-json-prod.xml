@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+
+    <Appenders>
+        <Console name="ConsoleJson" target="SYSTEM_OUT">
+            <JsonLayout
+                    compact="true"
+                    eventEol="true"
+                    includeStacktrace="true"
+                    includeThreadName="true"
+                    includeLoggerName="true"
+                    includeMDC="true"
+                    includeMapMessage="true"
+                    propertiesAsList="false"
+                    timestampFormat="ISO8601"/>
+        </Console>
+    </Appenders>
+
+    <Loggers>
+        <Root level="info">
+            <AppenderRef ref="ConsoleJson"/>
+        </Root>
+
+        <!-- Example: package-specific logging -->
+        <Logger name="io.github.jlmc" level="debug" additivity="false">
+            <AppenderRef ref="ConsoleJson"/>
+        </Logger>
+        <Logger name="org.apache.flink" level="info"/>
+        <Logger name="org.apache.kafka" level="info"/>
+        <Logger name="org.apache.http" level="warn"/>
+    </Loggers>
+
+</Configuration>

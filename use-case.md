@@ -543,10 +543,6 @@ stream
 
 ---
 
-I can also provide a **version in Python (PyFlink)** if you prefer using Python for the Flink job.
-
-Do you want me to do that?
-
 
 
 

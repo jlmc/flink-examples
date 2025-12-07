@@ -1,4 +1,11 @@
+networks:
+  infra_network:
+    driver: bridge
+
 services:
+  # --------------------
+  # 1. KAFKA SERVICE
+  # --------------------
   kafka:
     image: confluentinc/cp-kafka:7.7.2
     hostname: kafka
@@ -9,7 +16,7 @@ services:
       KAFKA_BROKER_ID: 1
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,CONTROLLER:PLAINTEXT
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:19092,PLAINTEXT_HOST://localhost:9092
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true" # <-- This enables automatic topic creation
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
@@ -29,6 +36,52 @@ services:
       timeout: 5s
       retries: 20
       start_period: 20s
+    networks:
+      - infra_network
+
+  # --------------------
+  # 1.1. KAFKA INIT SERVICE
+  # --------------------
+  kafka-init:
+    image: confluentinc/cp-kafka:7.7.2 # Use the same Kafka image to ensure tools are available
+    container_name: kafka-init
+    command: ["/bin/bash", "/create_topics.sh"]
+    volumes:
+      - ./docker/volumes/kafka/init/create-topics.sh:/create_topics.sh # Mount the script into the container
+    depends_on:
+      kafka:
+        condition: service_healthy # Ensures Kafka is fully running and healthy
+    networks:
+      - infra_network # Must be on the same network to reach kafka:19092
+    restart: "no" # The service should exit successfully after running the script
+
+  # --------------------
+  # 2. KAFKA UI SERVICE
+  # --------------------
+  kafka-ui:
+    # https://hub.docker.com/r/provectuslabs/kafka-ui
+    image: provectuslabs/kafka-ui:v0.7.2
+    container_name: kafka-ui
+    ports:
+      # Access the UI at http://localhost:8580
+      - "8085:8080"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local-kafka
+      # Use the internal broker name (kafka) and internal listener port (19092)
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:19092
+    healthcheck:
+      # Queries the internal health endpoint to ensure the application is running
+      # test: [ "CMD-SHELL", "echo > /dev/tcp/localhost/8080 || exit 1" ]
+      test: ["CMD", "nc", "-z", "localhost", "8080"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - infra_network
 
   localstack:
     # https://hub.docker.com/r/localstack/localstack
@@ -93,5 +146,6 @@ services:
       MONGO_INITDB_DATABASE: db
     command: ["--replSet", "rs0", "--bind_ip_all"]
     volumes:
-      - mongo-data:/data/db
+      - ./docker/volumes/mongo/data:/data/db
       - ./init-replica.sh:/docker-entrypoint-initdb.d/init-replica.sh:ro
+

@@ -82,3 +82,16 @@ services:
     #  - ./docker/postgresql/init.sql:/docker-entrypoint-initdb.d/init.sql
 
 
+  mongodb:
+    image: mongo:6.0
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: user
+      MONGO_INITDB_ROOT_PASSWORD: pw
+      MONGO_INITDB_DATABASE: db
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    volumes:
+      - mongo-data:/data/db
+      - ./init-replica.sh:/docker-entrypoint-initdb.d/init-replica.sh:ro

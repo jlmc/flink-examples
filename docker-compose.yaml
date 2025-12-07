@@ -31,7 +31,7 @@ services:
       CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
       KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
     healthcheck:
-      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092 >/dev/null 2>&1 || exit 1"]
+      test: [ "CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092 >/dev/null 2>&1 || exit 1" ]
       interval: 10s
       timeout: 5s
       retries: 20
@@ -45,7 +45,7 @@ services:
   kafka-init:
     image: confluentinc/cp-kafka:7.7.2 # Use the same Kafka image to ensure tools are available
     container_name: kafka-init
-    command: ["/bin/bash", "/create_topics.sh"]
+    command: [ "/bin/bash", "/create_topics.sh" ]
     volumes:
       - ./docker/volumes/kafka/init/create-topics.sh:/create_topics.sh # Mount the script into the container
     depends_on:
@@ -75,7 +75,7 @@ services:
     healthcheck:
       # Queries the internal health endpoint to ensure the application is running
       # test: [ "CMD-SHELL", "echo > /dev/tcp/localhost/8080 || exit 1" ]
-      test: ["CMD", "nc", "-z", "localhost", "8080"]
+      test: [ "CMD", "nc", "-z", "localhost", "8080" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -85,25 +85,37 @@ services:
 
 
   # --------------------
-  # 2. REDIS SERVICE
+  # 3. REDIS SERVICE
   # --------------------
   redis:
     image: redis:3.2-alpine
     container_name: redis
+    profiles:
+      - dev
     ports:
       - "6379:6379"
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
       timeout: 3s
       retries: 5
     networks:
       - infra_network
 
+  # --------------------
+  # 4. localstack AWS MOCK SERVICE
+  # --------------------
   localstack:
+    # https://app.localstack.cloud/getting-started
+    # https://app.localstack.cloud/inst/default/status
     # https://hub.docker.com/r/localstack/localstack
     # docker pull localstack/localstack:4.11.1
     # image: localstack/localstack:latest
+    ## ---
+    # How to see a particular service:
+    # https://app.localstack.cloud/getting-started
+    # https://app.localstack.cloud/inst/default/status
+    # -----
     image: localstack/localstack:4.11.1
     container_name: "${LOCALSTACK_DOCKER_NAME:-localstack-main}"
     environment:
@@ -121,7 +133,15 @@ services:
     ports:
       - "127.0.0.1:4566:4566"            # LocalStack Gateway
       - "127.0.0.1:4510-4559:4510-4559"  # external services port range
-      - "8083:8080"        # <-- Web UI exposed here!
+      - "8083:8080"        # <-- Web UI exposed here! http://localhost:4566/
+    networks:
+      - infra_network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:4566/_localstack/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
     volumes:
       #- "${LOCALSTACK_VOLUME_DIR:-./volume}:/var/lib/localstack"
       #- "/var/run/docker.sock:/var/run/docker.sock"
@@ -131,7 +151,9 @@ services:
 
 
 
-
+  # --------------------
+  # 5. postgresql SERVICE
+  # --------------------
   postgresql:
     image: postgis/postgis:15-3.3-alpine
     ports:
@@ -145,10 +167,13 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
-    #volumes:
-    #  - ./docker/postgresql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - infra_network
 
 
+  # --------------------
+  # 6. MONGODB SERVICE
+  # --------------------
   mongodb:
     image: mongo:6.0
     container_name: mongodb
@@ -158,8 +183,15 @@ services:
       MONGO_INITDB_ROOT_USERNAME: user
       MONGO_INITDB_ROOT_PASSWORD: pw
       MONGO_INITDB_DATABASE: db
-    command: ["--replSet", "rs0", "--bind_ip_all"]
+    command: [ "--replSet", "rs0", "--bind_ip_all" ]
     volumes:
-      - ./docker/volumes/mongo/data:/data/db
+      #- ./docker/volumes/mongo/data:/data/db
       - ./init-replica.sh:/docker-entrypoint-initdb.d/init-replica.sh:ro
-
+    healthcheck:
+      test: [ "CMD-SHELL", "mongo --eval 'quit(db.runCommand({ ping: 1 }).ok ? 0 : 2)'" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - infra_network

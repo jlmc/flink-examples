@@ -47,6 +47,7 @@ In this examples we are using the flink version [1.20](https://nightlies.apache.
 
 * [Install Flink in a personal Docker container](docs/instalation/docker-personal-flink-images)
 * [Run Flink in the official Docker container](docs/instalation/docker-official-flink-images)
+* Local development infrastructure (Kafka, Redis, LocalStack, PostgreSQL, MongoDB): see [Docker Compose Services Guide](DOCKER-COMPOSE-SERVICES.md)
 
 ---
 

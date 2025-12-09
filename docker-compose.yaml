@@ -1,0 +1,193 @@
+networks:
+  infra_network:
+    driver: bridge
+
+services:
+  # --------------------
+  # 1. KAFKA SERVICE
+  # --------------------
+  kafka:
+    image: confluentinc/cp-kafka:7.7.2
+    hostname: kafka
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:19092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true" # <-- This enables automatic topic creation
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_NODE_ID: 1
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:19093
+      KAFKA_LISTENERS: PLAINTEXT://kafka:19092,CONTROLLER://kafka:19093,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+      KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
+    healthcheck:
+      test: [ "CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092 >/dev/null 2>&1 || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    networks:
+      - infra_network
+
+  # --------------------
+  # 1.1. KAFKA INIT SERVICE
+  # --------------------
+  kafka-init:
+    image: confluentinc/cp-kafka:7.7.2 # Use the same Kafka image to ensure tools are available
+    container_name: kafka-init
+    command: [ "/bin/bash", "/create_topics.sh" ]
+    volumes:
+      - ./docker/volumes/kafka/init/create-topics.sh:/create_topics.sh # Mount the script into the container
+    depends_on:
+      kafka:
+        condition: service_healthy # Ensures Kafka is fully running and healthy
+    networks:
+      - infra_network # Must be on the same network to reach kafka:19092
+    restart: "no" # The service should exit successfully after running the script
+
+  # --------------------
+  # 1.3 KAFKA UI SERVICE
+  # --------------------
+  kafka-ui:
+    # https://hub.docker.com/r/provectuslabs/kafka-ui
+    image: provectuslabs/kafka-ui:v0.7.2
+    container_name: kafka-ui
+    ports:
+      # Access the UI at http://localhost:8580
+      - "8085:8080"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local-kafka
+      # Use the internal broker name (kafka) and internal listener port (19092)
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:19092
+    healthcheck:
+      # Queries the internal health endpoint to ensure the application is running
+      # test: [ "CMD-SHELL", "echo > /dev/tcp/localhost/8080 || exit 1" ]
+      test: [ "CMD", "nc", "-z", "localhost", "8080" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - infra_network
+
+  # --------------------
+  # 2. REDIS SERVICE
+  # --------------------
+  redis:
+    image: redis:3.2-alpine
+    container_name: redis
+    profiles:
+      - dev
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - infra_network
+
+  # --------------------
+  # 3. localstack AWS MOCK SERVICE
+  # --------------------
+  localstack:
+    # https://app.localstack.cloud/getting-started
+    # https://app.localstack.cloud/inst/default/status
+    # https://hub.docker.com/r/localstack/localstack
+    # docker pull localstack/localstack:4.11.1
+    # image: localstack/localstack:latest
+    ## ---
+    # How to see a particular service:
+    # https://app.localstack.cloud/getting-started
+    # https://app.localstack.cloud/inst/default/status
+    # -----
+    image: localstack/localstack:4.11.1
+    container_name: "${LOCALSTACK_DOCKER_NAME:-localstack-main}"
+    environment:
+      # LocalStack configuration: https://docs.localstack.cloud/references/configuration/
+      - SERVICES=s3,sqs,lambda
+      - DATA_DIR=/tmp/localstack/data
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_DEFAULT_REGION=us-east-1
+      - DEBUG=0
+      - DEBUG=${DEBUG:-0}
+      - LOCALSTACK_API_KEY=${LOCALSTACK_API_KEY-}   # optional
+      - LOCALSTACK_UI=1
+    ports:
+      - "127.0.0.1:4566:4566"            # LocalStack Gateway
+      - "127.0.0.1:4510-4559:4510-4559"  # external services port range
+      - "8083:8080"        # <-- Web UI exposed here! http://localhost:4566/
+    networks:
+      - infra_network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:4566/_localstack/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    volumes:
+      #- "${LOCALSTACK_VOLUME_DIR:-./volume}:/var/lib/localstack"
+      #- "/var/run/docker.sock:/var/run/docker.sock"
+      - ./docker/volumes/localstack/init/init-aws.sh:/etc/localstack/init/ready.d/init-aws.sh
+      - ./docker/volumes/localstack/data:/var/lib/localstack
+      - "/var/run/docker.sock:/var/run/docker.sock"
+
+  # --------------------
+  # 5. postgresql SERVICE
+  # --------------------
+  postgresql:
+    image: postgis/postgis:15-3.3-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pw
+      POSTGRES_DB: db
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U user -d db" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - infra_network
+
+  # --------------------
+  # 6. MONGODB SERVICE
+  # --------------------
+  mongodb:
+    image: mongo:6.0
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: user
+      MONGO_INITDB_ROOT_PASSWORD: pw
+      MONGO_INITDB_DATABASE: db
+    command: [ "--replSet", "rs0", "--bind_ip_all" ]
+    volumes:
+      #- ./docker/volumes/mongo/data:/data/db
+      - ./docker/volumes/mongo/init/init-replica.sh:/docker-entrypoint-initdb.d/init-replica.sh:ro
+    healthcheck:
+      test: [ "CMD-SHELL", "mongo --eval 'quit(db.runCommand({ ping: 1 }).ok ? 0 : 2)'" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - infra_network

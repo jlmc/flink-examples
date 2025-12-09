@@ -26,9 +26,26 @@
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <maven.compiler.release>${java.version}</maven.compiler.release>
         <log4j-slf4j-impl.version>2.23.1</log4j-slf4j-impl.version>
+
+        <flink.version>1.20.3</flink.version>
+        <log4j-slf4j-impl.version>2.23.1</log4j-slf4j-impl.version>
+        <junit-jupiter.version>5.13.3</junit-jupiter.version>
     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.junit</groupId>
+                <artifactId>junit-bom</artifactId>
+                <version>${junit-jupiter.version}</version> <!-- use the latest stable version -->
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <modules>
         <module>collections-source-connectors</module>
+        <module>data-source-kafka-connector</module>
     </modules>
 </project>

@@ -1,0 +1,23 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPattern": "/api/users/([0-9]+)"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "transformers": ["response-template"],
+    "jsonBody": {
+      "id": "{{request.path.[1]}}",
+      "firstName": "{{randomValue type='ALPHABETIC' length=5}}",
+      "lastName": "{{randomValue type='ALPHABETIC' length=7}}",
+      "name": "{{randomValue type='ALPHABETIC' length=5}} {{randomValue type='ALPHABETIC' length=7}}",
+      "email": "{{lower (randomValue type='ALPHABETIC' length=5)}}.{{lower (randomValue type='ALPHABETIC' length=7)}}@example.com",
+      "createdAt": "{{now offset='-7d' format=\"yyyy-MM-dd'T'HH:mm:ssZ\"}}",
+      "status": "{{randomValue type='ENUM' values='ACTIVE,INACTIVE,SUSPENDED'}}",
+      "uuid": "{{randomValue type='UUID'}}"
+    }
+  }
+}

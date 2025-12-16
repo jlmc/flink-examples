@@ -1,0 +1,14 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPattern": "/api/configs/([0-9]+)"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "transformers": ["response-template"],
+    "bodyFileName": "configs/config-1001.json"
+  }
+}

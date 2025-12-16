@@ -1,0 +1,20 @@
+[
+  {
+    "configId": "1001",
+    "name": "Feature Toggle Alpha",
+    "enabled": true,
+    "owner": "alice.franklin@example.com"
+  },
+  {
+    "configId": "1002",
+    "name": "Beta Test Mode",
+    "enabled": false,
+    "owner": "bob.harrison@example.com"
+  },
+  {
+    "configId": "1003",
+    "name": "Dark Mode",
+    "enabled": true,
+    "owner": "charlie.smith@example.com"
+  }
+]

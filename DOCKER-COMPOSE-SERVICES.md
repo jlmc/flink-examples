@@ -184,29 +184,75 @@ PGPASSWORD=pw psql -h localhost -U user -d db -c "SELECT version();"
 
 ### 6) MongoDB (replica set for transactions)
 
-- Service name: `mongodb`
-- Image: `mongo:6.0`
-- Ports: `27017:27017`
-- Env vars: `MONGO_INITDB_ROOT_USERNAME=user`, `MONGO_INITDB_ROOT_PASSWORD=pw`, `MONGO_INITDB_DATABASE=db`
-- Command: starts with `--replSet rs0` and `--bind_ip_all`
-- Healthcheck: verifies Mongo is responsive.
+- Service names: `mongo1`, `mongo2`, and `mongodb` (init-orchestrator)
+- Image: `mongo:6.0.13`
+- Ports:
+  - `mongo1` → `27017:27017`
+  - `mongo2` → `27018:27017`
+- Replica set name: `dataDemos`
+- Commands:
+  - `mongo1`: `mongod --replSet dataDemos --bind_ip localhost,mongo1`
+  - `mongo2`: `mongod --replSet dataDemos --bind_ip localhost,mongo2`
 - Initialization:
-  - A replica set init script is mounted to `/docker-entrypoint-initdb.d/init-replica.sh`.
-  - Source path in the repo: `docker/volumes/mongo/init/init-replica.sh`
-
-Connect from host:
-
+  - The `mongodb` service runs an init script after a short delay to initiate the replica set and seed data.
+  - Script path (mounted): `docker/volumes/mongo/init/mongo-init.js`
+  - Compose runs: `mongosh mongodb://mongo1:27017 -f /docker-entrypoint-initdb.d/mongo-init.js`
+ 
+Connection strings:
+ 
+- From another container on the same network:
+ 
 ```
-mongodb://user:pw@localhost:27017/?authSource=admin
+mongodb://mongo1:27017,mongo2:27017/?replicaSet=dataDemos
 ```
-
+ 
+- From the host (macOS/Linux):
+ 
+```
+# Connect to primary via localhost ports (replica set aware)
+mongodb://localhost:27017,localhost:27018/?replicaSet=dataDemos
+```
+ 
 Replica set status (from a Mongo shell):
-
+ 
 ```
-mongosh "mongodb://user:pw@localhost:27017/admin" --eval 'rs.status()'
+mongosh "mongodb://localhost:27017,localhost:27018/?replicaSet=dataDemos" --eval 'rs.status()'
 ```
 
 ---
+
+### 7) RabbitMQ
+
+- Service name: `rabbitmq`
+- Image: `rabbitmq:4.2.1-management`
+- Ports:
+  - AMQP: `5672:5672`
+  - Management UI: `15672:15672` → http://localhost:15672
+- Volumes:
+  - `docker/volumes/rabbitmq/rabbitmq.config` → `/etc/rabbitmq/rabbitmq.config:ro`
+  - `docker/volumes/rabbitmq/rabbitmq-definitions.json` → `/etc/rabbitmq/definitions.json:ro`
+- Healthcheck: `rabbitmq-diagnostics -q ping`
+
+Default credentials (unless overridden): `guest` / `guest`
+
+---
+
+### 8) WireMock (mock REST APIs)
+
+- Service name: `wiremock`
+- Image: `wiremock/wiremock:3.13.2`
+- Ports: `9069:9069`
+- Command flags:
+  - `--port=9069`, `--verbose`, `--global-response-templating`
+- Volumes:
+  - `docker/volumes/wiremock/mappings` → `/home/wiremock/mappings`
+  - `docker/volumes/wiremock/__files` → `/home/wiremock/__files`
+- Healthcheck: HTTP GET `http://localhost:9069/__admin/`
+
+Useful endpoints:
+
+- Admin: `GET http://localhost:9069/__admin/`
+- List mappings: `GET http://localhost:9069/__admin/mappings`
 
 ### Helpful commands
 
@@ -240,6 +286,10 @@ docker system prune -f
 
 - Kafka UI: http://localhost:8085
 - LocalStack UI: http://localhost:8083
+- RabbitMQ Management: http://localhost:15672
+- WireMock Admin: http://localhost:9069/__admin/
+- PostgreSQL: postgresql://user:pw@localhost:5432/db
+- MongoDB (replica set): mongodb://localhost:27017,localhost:27018/?replicaSet=dataDemos
 
 ---
 
@@ -247,4 +297,6 @@ docker system prune -f
 
 - Kafka: When running applications inside the same compose network, use `kafka:19092`. From the host, use `localhost:9092`.
 - LocalStack: Point AWS SDK clients to `http://localhost:4566` and use the default `test/test` credentials unless overridden.
-- MongoDB: The compose file mounts the replica init script to `/docker-entrypoint-initdb.d/init-replica.sh`. Ensure the source file exists at `docker/volumes/mongo/init/init-replica.sh`.
+- MongoDB: Replica set name is `dataDemos`. The init script is mounted from `docker/volumes/mongo/init/mongo-init.js` and executed by the `mongodb` service.
+- RabbitMQ: Default credentials are `guest` / `guest`. Management UI at `http://localhost:15672`.
+- WireMock: Mappings live under `docker/volumes/wiremock/mappings` and static files in `docker/volumes/wiremock/__files`.

@@ -1,11 +1,12 @@
 networks:
   infra_network:
+    name: infra
     driver: bridge
 
 services:
-  # --------------------
-  # 1. KAFKA SERVICE
-  # --------------------
+  #########################################
+  ## Kafka broker for data streaming
+  #########################################
   kafka:
     image: confluentinc/cp-kafka:7.7.2
     hostname: kafka
@@ -39,9 +40,6 @@ services:
     networks:
       - infra_network
 
-  # --------------------
-  # 1.1. KAFKA INIT SERVICE
-  # --------------------
   kafka-init:
     image: confluentinc/cp-kafka:7.7.2 # Use the same Kafka image to ensure tools are available
     container_name: kafka-init
@@ -55,9 +53,6 @@ services:
       - infra_network # Must be on the same network to reach kafka:19092
     restart: "no" # The service should exit successfully after running the script
 
-  # --------------------
-  # 1.3 KAFKA UI SERVICE
-  # --------------------
   kafka-ui:
     # https://hub.docker.com/r/provectuslabs/kafka-ui
     image: provectuslabs/kafka-ui:v0.7.2
@@ -167,27 +162,99 @@ services:
     networks:
       - infra_network
 
-  # --------------------
-  # 6. MONGODB SERVICE
-  # --------------------
-  mongodb:
-    image: mongo:6.0
-    container_name: mongodb
+  #########################################
+  ## Mongo cluster with transaction support
+  #########################################
+  mongo1:
+    image: mongo:6.0.13
+    container_name: mongo1
+    networks:
+      - infra_network
+    restart: always
     ports:
       - "27017:27017"
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: user
-      MONGO_INITDB_ROOT_PASSWORD: pw
-      MONGO_INITDB_DATABASE: db
-    command: [ "--replSet", "rs0", "--bind_ip_all" ]
-    volumes:
-      #- ./docker/volumes/mongo/data:/data/db
-      - ./docker/volumes/mongo/init/init-replica.sh:/docker-entrypoint-initdb.d/init-replica.sh:ro
+    command: mongod --replSet dataDemos --bind_ip localhost,mongo1
+
+  mongo2:
+    image: mongo:6.0.13
+    container_name: mongo2
+    networks:
+      - infra_network
+    restart: always
+    ports:
+      - "27018:27017"
+    command: mongod --replSet dataDemos --bind_ip localhost,mongo2
+
+  mongodb:
+    image: mongo:6.0.13
+    container_name: mongodb
+    networks:
+      - infra_network
+    depends_on:
+      - mongo1
+      - mongo2
     healthcheck:
-      test: [ "CMD-SHELL", "mongo --eval 'quit(db.runCommand({ ping: 1 }).ok ? 0 : 2)'" ]
+      test: |
+        mongosh --host mongo1 --eval "rs.initiate({
+          _id: 'dataDemos',
+          members: [
+            {_id: 0, host: 'mongo1'},
+            {_id: 1, host: 'mongo2'}
+          ]
+        })"
+      interval: 10s
+      timeout: 30s
+      retries: 3
+      start_period: 30s
+    volumes:
+      - ./docker/volumes/mongo/init:/docker-entrypoint-initdb.d
+      #- ./docker/volumes/mongodb/data:/data/db
+      #- ./docker/mongodb:/docker-entrypoint-initdb.d
+    command: bash -c "sleep 30 && mongosh mongodb://mongo1:27017 -f /docker-entrypoint-initdb.d/mongo-init.js"
+
+  #########################################
+  ## Rabbit MQ
+  #########################################
+  rabbitmq:
+    image: rabbitmq:4.2.1-management
+    container_name: rabbitmq
+    networks:
+      - infra_network
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - ./docker/volumes/rabbitmq/rabbitmq.config:/etc/rabbitmq/rabbitmq.config:ro
+      - ./docker/volumes/rabbitmq/rabbitmq-definitions.json:/etc/rabbitmq/definitions.json:ro
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  #########################################
+  ## wiremock server to mock API GW responses
+  #########################################
+  wiremock:
+    # https://wiremock.org/docs/standalone/docker/
+    #  curl http://localhost:9069/__admin/mappings | jq .
+    image: wiremock/wiremock:3.13.2
+    container_name: wiremock
+    networks:
+      - infra_network
+    command:
+      - "--port=9069"
+      - "--verbose"
+      - "--global-response-templating"
+    ports:
+      - "9069:9069"
+    volumes:
+      - ./docker/volumes/wiremock/mappings:/./home/wiremock/mappings
+      - ./docker/volumes/wiremock/__files:/./home/wiremock/__files
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent --show-error http://localhost:9069/__admin/ || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 20s
-    networks:
-      - infra_network

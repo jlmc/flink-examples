@@ -243,3 +243,5 @@ dependency-reduced-pom.xml
 
 docker/volumes/mongo/data/**
 docker/volumes/localstack/data/**
+
+.volumes/

@@ -26,9 +26,9 @@
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <maven.compiler.release>${java.version}</maven.compiler.release>
         <log4j-slf4j-impl.version>2.23.1</log4j-slf4j-impl.version>
+        <slf4j-api.version>1.7.36</slf4j-api.version>
 
         <flink.version>1.20.3</flink.version>
-        <log4j-slf4j-impl.version>2.23.1</log4j-slf4j-impl.version>
         <junit-jupiter.version>5.13.3</junit-jupiter.version>
     </properties>
 

@@ -11,11 +11,15 @@ import org.apache.flink.connector.mongodb.source.enumerator.splitter.PartitionSt
 import org.apache.flink.connector.mongodb.source.reader.deserializer.MongoDeserializationSchema;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.bson.BsonDocument;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * <a href="https://nightlies.apache.org/flink/flink-docs-master/docs/connectors/datastream/mongodb/">Mongodb connector</a>
  */
 public class MongodbConnectorDataSourceJob {
+
+    private static final Logger logger = LoggerFactory.getLogger(MongodbConnectorDataSourceJob.class);
 
     public static void main(String[] args) throws Exception {
         // 1️⃣ Create the execution environment

@@ -3,7 +3,7 @@
     <option name="INCLUDE_PROVIDED_SCOPE" value="true" />
     <option name="MAIN_CLASS_NAME" value="io.github.jlmc.j8.KafkaSourceConnectorStringValueOnly" />
     <module name="data-source-kafka-connector" />
-    <option name="VM_PARAMETERS" value="-Dlog4j.configurationFile=log4j2-text.xml" />
+    <option name="VM_PARAMETERS" value="-Dlog4j.configurationFile=log4j2.xml" />
     <option name="WORKING_DIRECTORY" value="projects/flink-data-sources/data-source-kafka-connector" />
     <extension name="coverage">
       <pattern>

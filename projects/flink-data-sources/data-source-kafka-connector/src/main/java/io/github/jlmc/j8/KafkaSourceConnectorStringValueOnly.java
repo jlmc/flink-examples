@@ -11,9 +11,13 @@ import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsIni
 import org.apache.flink.core.execution.CheckpointingMode;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.kafka.clients.consumer.OffsetResetStrategy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class KafkaSourceConnectorStringValueOnly {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(KafkaSourceConnectorStringValueOnly.class);
+    
     public static void main(String[] args) throws Exception {
 
         Configuration conf = new Configuration();
@@ -23,7 +27,7 @@ public class KafkaSourceConnectorStringValueOnly {
 
         @SuppressWarnings("resource")
         StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(conf);
-        System.out.println("Hello, Kafka Source Connector with String Value Only!");
+        LOGGER.info("Hello, Kafka Source Connector with String Value Only!");
 
         env.enableCheckpointing(3000, CheckpointingMode.EXACTLY_ONCE);
         KafkaSource<String> kafkaSource =

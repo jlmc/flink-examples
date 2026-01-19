@@ -3,6 +3,8 @@ package io.github.jlmc.j8;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.configuration.RestOptions;
+import org.apache.flink.configuration.TaskManagerOptions;
 import org.apache.flink.connector.kafka.source.KafkaSource;
 import org.apache.flink.connector.kafka.source.KafkaSourceOptions;
 import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer;
@@ -16,8 +18,8 @@ public class KafkaSourceConnectorStringValueOnly {
 
         Configuration conf = new Configuration();
         // Set the web UI port to 8081 (or another free port) to avoid conflicts if multiple jobs are running
-        conf.setInteger("rest.port", 8081);
-        conf.setInteger("taskmanager.numberOfTaskSlots", 4);
+        conf.set(RestOptions.PORT, 8081);
+        conf.set(TaskManagerOptions.NUM_TASK_SLOTS, 4);
 
         @SuppressWarnings("resource")
         StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(conf);

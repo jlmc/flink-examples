@@ -2,6 +2,9 @@ package io.github.jlmc.flink.j4;
 
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.typeinfo.Types;
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.configuration.RestOptions;
+import org.apache.flink.configuration.TaskManagerOptions;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
@@ -13,29 +16,29 @@ import java.util.List;
 
 public class JavaCollectionSourcesConnectorExampleJob {
 
-    static SingleOutputStreamOperator<String> buildWithFromCollection(StreamExecutionEnvironment env, Configuration configuration) {
+    static SingleOutputStreamOperator<String> buildWithFromCollection(StreamExecutionEnvironment env, JobConfiguration jobConfiguration) {
         @SuppressWarnings("deprecation") // we know that the fromCollection is deprecated, and we should use fromData instead, but this is only for demonstration purposes
         DataStreamSource<String> source = env.fromCollection(List.of("a", "b", "c", "d", "e", "f", "g", "h"));
 
         return source.rebalance()
                 .map(JavaCollectionSourcesConnectorExampleJob::getFormatted, Types.STRING)
-                .setParallelism(configuration.parallelism);
+                .setParallelism(jobConfiguration.parallelism);
     }
 
-    static SingleOutputStreamOperator<String> buildWithFromData(StreamExecutionEnvironment env, Configuration configuration) {
+    static SingleOutputStreamOperator<String> buildWithFromData(StreamExecutionEnvironment env, JobConfiguration jobConfiguration) {
         DataStreamSource<String> source = env.fromData(List.of("a", "b", "c", "d", "e", "f", "g", "h"));
 
         return source.rebalance()
                 .map(JavaCollectionSourcesConnectorExampleJob::getFormatted, Types.STRING)
-                .setParallelism(configuration.parallelism);
+                .setParallelism(jobConfiguration.parallelism);
     }
 
-    static SingleOutputStreamOperator<String> buildWithFromElements(StreamExecutionEnvironment env, Configuration configuration) {
+    static SingleOutputStreamOperator<String> buildWithFromElements(StreamExecutionEnvironment env, JobConfiguration jobConfiguration) {
         @SuppressWarnings("deprecation") // we know that the fromElements is deprecated, and we should use fromData instead, but this is only for demonstration purposes
         DataStreamSource<String> stringDataStreamSource = env.fromElements("a", "b", "c", "d", "e", "f", "g", "h");
         return stringDataStreamSource
                 .map(JavaCollectionSourcesConnectorExampleJob::getFormatted, Types.STRING)
-                .setParallelism(configuration.parallelism);
+                .setParallelism(jobConfiguration.parallelism);
     }
 
     static SingleOutputStreamOperator<String> buildWithFromSequence(StreamExecutionEnvironment env) {
@@ -106,12 +109,17 @@ public class JavaCollectionSourcesConnectorExampleJob {
     }
 
     public static void main(String[] args) throws Exception {
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        Configuration conf = new Configuration();
+        conf.set(RestOptions.PORT, 8083);
+        conf.set(TaskManagerOptions.NUM_TASK_SLOTS, 4);
 
-        buildWithFromCollection(env, new Configuration("duke", 5)).print();
+        @SuppressWarnings("resource")
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(conf);
+
+        buildWithFromCollection(env, new JobConfiguration("duke", 5)).print();
 
         env.execute("java collection source");
     }
 
-    record Configuration(String type, int parallelism) implements Serializable {}
+    record JobConfiguration(String type, int parallelism) implements Serializable {}
 }

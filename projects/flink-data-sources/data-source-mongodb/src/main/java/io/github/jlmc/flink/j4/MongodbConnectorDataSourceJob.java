@@ -4,6 +4,8 @@ import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeinfo.Types;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.configuration.RestOptions;
+import org.apache.flink.configuration.TaskManagerOptions;
 import org.apache.flink.connector.mongodb.source.MongoSource;
 import org.apache.flink.connector.mongodb.source.enumerator.splitter.PartitionStrategy;
 import org.apache.flink.connector.mongodb.source.reader.deserializer.MongoDeserializationSchema;
@@ -18,8 +20,8 @@ public class MongodbConnectorDataSourceJob {
     public static void main(String[] args) throws Exception {
         // 1️⃣ Create the execution environment
         Configuration conf = new Configuration();
-        conf.setInteger("rest.port", 8082);
-        conf.setInteger("taskmanager.numberOfTaskSlots", 4);
+        conf.set(RestOptions.PORT, 8082);
+        conf.set(TaskManagerOptions.NUM_TASK_SLOTS, 4);
 
         final StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(conf);
 

@@ -14,8 +14,13 @@ public class KafkaSourceConnectorStringValueOnly {
 
     public static void main(String[] args) throws Exception {
 
+        Configuration conf = new Configuration();
+        // Set the web UI port to 8081 (or another free port) to avoid conflicts if multiple jobs are running
+        conf.setInteger("rest.port", 8081);
+        conf.setInteger("taskmanager.numberOfTaskSlots", 4);
+
         @SuppressWarnings("resource")
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(new Configuration());
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(conf);
         System.out.println("Hello, Kafka Source Connector with String Value Only!");
 
         env.enableCheckpointing(3000, CheckpointingMode.EXACTLY_ONCE);
@@ -27,12 +32,8 @@ public class KafkaSourceConnectorStringValueOnly {
                         // configure other options as needed
                         .setStartingOffsets(OffsetsInitializer.committedOffsets(OffsetResetStrategy.EARLIEST))
                         .setValueOnlyDeserializer(new SimpleStringSchema())
-                        //.setProperty("commit.offsets.on.checkpoint", "true")
                         .setProperty(KafkaSourceOptions.COMMIT_OFFSETS_ON_CHECKPOINT.key(), "true")
-                        //.setProperty("auto.commit.interval.ms", "5000")
                         .setProperty(org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "5000")
-                        //.setProperty("enable.auto.commit", "true")
-                        //.setProperty(org.apache.kafka.clients.consumer.ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true")
                         .build();
 
 

@@ -5,19 +5,13 @@
         <groupId>io.github.jlmc</groupId>
         <artifactId>flink-data-sources</artifactId>
         <version>1.0-SNAPSHOT</version>
+        <!--relativePath>../pom.xml</relativePath -->
     </parent>
     <artifactId>data-source-kafka-connector</artifactId>
 
     <properties>
-        <!-- Use a stable, recent Flink version -->
-        <!--<flink.version>1.19.1</flink.version>-->
-        <flink.version>1.20.3</flink.version>
         <java.version>17</java.version>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>${java.version}</maven.compiler.source>
-        <maven.compiler.target>${java.version}</maven.compiler.target>
-        <maven.compiler.release>${java.version}</maven.compiler.release>
-        <log4j-slf4j.version>2.23.1</log4j-slf4j.version>
+        <flink.connector.kafka.version>3.3.0-1.20</flink.connector.kafka.version>
     </properties>
 
 
@@ -91,6 +85,7 @@
             <groupId>org.apache.flink</groupId>
             <artifactId>flink-runtime-web</artifactId>
             <version>${flink.version}</version>
+            <scope>provided</scope>
         </dependency>
         <!-- Core Flink dependencies (No version needed thanks to flink-bom) -->
         <!-- Flink Streaming API is the standard way for both bounded (batch) and unbounded jobs -->
@@ -98,40 +93,43 @@
             <groupId>org.apache.flink</groupId>
             <artifactId>flink-streaming-java</artifactId>
             <version>${flink.version}</version>
+            <scope>provided</scope>
         </dependency>
         <!-- The flink-clients library is required for submitting jobs from the shaded JAR -->
         <dependency>
             <groupId>org.apache.flink</groupId>
             <artifactId>flink-clients</artifactId>
             <version>${flink.version}</version>
+            <scope>provided</scope>
         </dependency>
 
-
-
+        <!-- Logging (slf4j) -->
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-slf4j-impl</artifactId>
+            <version>${log4j-slf4j-impl.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>${log4j-slf4j-impl.version}</version>
+            <scope>runtime</scope>
+        </dependency>
 
         <!-- Flink Kafka Connector -->
         <dependency>
             <groupId>org.apache.flink</groupId>
             <artifactId>flink-connector-kafka</artifactId>
-            <version>3.3.0-1.20</version>
+            <version>${flink.connector.kafka.version}</version>
             <scope>compile</scope>
         </dependency>
 
-        <!--
         <dependency>
             <groupId>org.apache.flink</groupId>
-            <artifactId>flink-connector-mongodb</artifactId>
-            <version>1.2.0-1.19</version>
+            <artifactId>flink-connector-base</artifactId>
+            <version>${flink.version}</version>
             <scope>compile</scope>
         </dependency>
-        <dependency>
-            <groupId>org.apache.flink</groupId>
-            <artifactId>flink-sql-connector-kafka</artifactId>
-            <version>3.3.0-1.20</version>
-            <scope>compile</scope>
-        </dependency>
-
-        -->
-
     </dependencies>
 </project>

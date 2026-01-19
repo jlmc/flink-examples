@@ -1,0 +1,9 @@
+{
+  "request": {
+    "method": "DELETE",
+    "url": "/api/users/101"
+  },
+  "response": {
+    "status": 204
+  }
+}

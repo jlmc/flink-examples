@@ -1,0 +1,231 @@
+{
+  "users": [
+    {
+      "name": "guest",
+      "password_hash": "aWPaUgZnOl0AYykIph9DgxkGuHcHfwa981EAgeIsSmeGOONy",
+      "hashing_algorithm": "rabbit_password_hashing_sha256",
+      "tags": "administrator",
+      "limits": {}
+    }
+  ],
+  "vhosts": [
+    { "name": "/" }
+  ],
+  "permissions": [
+    {
+      "user": "guest",
+      "vhost": "/",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    }
+  ],
+  "topic_permissions": [],
+  "parameters": [],
+  "global_parameters": [
+    {
+      "name": "cluster_name",
+      "value": "demos-sandbox"
+    },
+    {
+      "name": "internal_cluster_id",
+      "value": "rabbitmq-cluster-id-vq1Z_i55DMnrMcYq0GvLJg"
+    }
+  ],
+  "policies": [],
+
+  "queues": [
+    {
+
+      "_comment": "=== AUDIT LOGGING (existing) ===",
+
+      "name": "audit.logging",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-queue-type": "classic"
+      }
+    },
+
+    {
+      "_comment": "=== WORK QUEUE (round-robin consumers) ===",
+      "name": "jobs.work",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-queue-type": "quorum"
+      }
+    },
+
+    {
+      "_comment": "=== DELAYED RETRY QUEUE ===",
+      "name": "jobs.retry.5s",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-message-ttl": 5000,
+        "x-dead-letter-exchange": "jobs.exchange",
+        "x-dead-letter-routing-key": "jobs.process"
+      }
+    },
+
+    {
+      "_comment": "=== DEAD LETTER QUEUE ===",
+      "name": "jobs.dlq",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+
+    {
+      "_comment": "=== FANOUT BROADCAST QUEUE ===",
+      "name": "notifications.email",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
+      "name": "notifications.sms",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    }
+  ],
+
+  "exchanges": [
+    {
+      "_comment": "=== EXISTING TOPIC EXCHANGE ===",
+      "name": "tdx.events",
+      "vhost": "/",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    },
+
+    {
+      "_comment": "=== DIRECT WORK EXCHANGE ===",
+      "name": "jobs.exchange",
+      "vhost": "/",
+      "type": "direct",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    },
+
+    {
+      "_comment": "=== DEAD LETTER EXCHANGE ===",
+      "name": "jobs.dlx",
+      "vhost": "/",
+      "type": "direct",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    },
+
+    {
+      "_comment": "=== FANOUT BROADCAST EXCHANGE ===",
+      "name": "notifications.exchange",
+      "vhost": "/",
+      "type": "fanout",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    },
+
+    {
+      "_comment": "=== HEADERS EXCHANGE ===",
+      "name": "headers.exchange",
+      "vhost": "/",
+      "type": "headers",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    }
+  ],
+
+  "bindings": [
+    {
+      "_comment": "=== EXISTING AUDIT BINDING ===",
+      "source": "tdx.events",
+      "vhost": "/",
+      "destination": "audit.logging",
+      "destination_type": "queue",
+      "routing_key": "auditor.audits",
+      "arguments": {}
+    },
+
+    {
+      "_comment": "=== WORK QUEUE BINDING ===",
+      "source": "jobs.exchange",
+      "vhost": "/",
+      "destination": "jobs.work",
+      "destination_type": "queue",
+      "routing_key": "jobs.process",
+      "arguments": {}
+    },
+
+    {
+      "_comment": "=== RETRY QUEUE BINDING ===",
+      "source": "jobs.exchange",
+      "vhost": "/",
+      "destination": "jobs.retry.5s",
+      "destination_type": "queue",
+      "routing_key": "jobs.retry",
+      "arguments": {}
+    },
+
+    {
+      "_comment": "=== DEAD LETTER QUEUE BINDING ===",
+      "source": "jobs.dlx",
+      "vhost": "/",
+      "destination": "jobs.dlq",
+      "destination_type": "queue",
+      "routing_key": "#",
+      "arguments": {}
+    },
+
+    {
+      "_comment": "=== FANOUT BROADCAST BINDINGS ===",
+      "source": "notifications.exchange",
+      "vhost": "/",
+      "destination": "notifications.email",
+      "destination_type": "queue",
+      "routing_key": "",
+      "arguments": {}
+    },
+    {
+      "source": "notifications.exchange",
+      "vhost": "/",
+      "destination": "notifications.sms",
+      "destination_type": "queue",
+      "routing_key": "",
+      "arguments": {}
+    },
+
+    {
+      "_comment": "=== HEADERS EXCHANGE BINDING ===",
+      "source": "headers.exchange",
+      "vhost": "/",
+      "destination": "audit.logging",
+      "destination_type": "queue",
+      "routing_key": "",
+      "arguments": {
+        "x-match": "all",
+        "service": "billing",
+        "severity": "high"
+      }
+    }
+  ]
+}

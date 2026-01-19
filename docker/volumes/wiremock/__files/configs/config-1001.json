@@ -1,0 +1,10 @@
+{
+  "configId": "{{request.path.[1]}}",
+  "name": "Feature Toggle {{randomValue type='ALPHABETIC' length=5}}",
+  "description": "Configuration for feature {{randomValue type='ALPHABETIC' length=7}}",
+  "enabled": "{{randomValue type='BOOLEAN'}}",
+  "createdAt": "{{now offset='-14d' format='yyyy-MM-dd'T'HH:mm:ssZ'}}",
+  "updatedAt": "{{now format='yyyy-MM-dd'T'HH:mm:ssZ'}}",
+  "owner": "{{randomValue type='ALPHABETIC' length=6}}.{{randomValue type='ALPHABETIC' length=8}}@example.com",
+  "version": "{{randomValue type='NUMERIC' length=2}}"
+}

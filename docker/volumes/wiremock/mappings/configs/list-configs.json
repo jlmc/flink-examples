@@ -1,0 +1,15 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "/api/configs"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "transformers": ["response-template"],
+    "bodyFileName": "configs/configs-list.json",
+    "fixedDelayMilliseconds": 5000
+  }
+}

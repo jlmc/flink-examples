@@ -11,7 +11,7 @@ It supports **batch processing**, **graph processing**, and **iterative processi
 *extremely fast stream processing capabilities**.
 Think of Flink as the **next-generation engine for stream processing**—like “4G for Big Data processing.”
 
-In this examples we are using the flink version [1.20](https://nightlies.apache.org/flink/flink-docs-release-1.20/docs/)
+In these examples we are using the Flink version [1.20](https://nightlies.apache.org/flink/flink-docs-release-1.20/docs/)
 
 ---
 
@@ -19,13 +19,14 @@ In this examples we are using the flink version [1.20](https://nightlies.apache.
 
 1. [Key Features](#key-features)
 2. [Installation](#installation)
-
     * [Docker](#installing-in-a-docker-container)
 3. [Architecture](#architecture)
 4. [Deployment](#deployment)
-
     * [Deployment Modes](docs/deploy-modes/README.md)
-5. [Flink Local Environment for Development](#flink-local-environment-for-development)
+5. [Projects and Examples](#projects-and-examples)
+    * [Flink Local Environment for Development](#flink-local-environment-for-development)
+    * [Data Sources](#data-sources)
+    * [Processing Examples](#processing-examples)
 6. [Flink Operator Parallelism](docs/operator-parallelism/README.md)
 
 ---
@@ -47,6 +48,7 @@ In this examples we are using the flink version [1.20](https://nightlies.apache.
 
 * [Install Flink in a personal Docker container](docs/instalation/docker-personal-flink-images)
 * [Run Flink in the official Docker container](docs/instalation/docker-official-flink-images)
+* Local development infrastructure (Kafka, Redis, LocalStack, PostgreSQL, MongoDB): see [Docker Compose Services Guide](DOCKER-COMPOSE-SERVICES.md)
 
 ---
 
@@ -63,7 +65,9 @@ In this examples we are using the flink version [1.20](https://nightlies.apache.
 
 ---
 
-## Flink Local Environment for Development
+## Projects and Examples
+
+### Flink Local Environment for Development
 
 * [Flink Local Environment for Development](projects/flink-local-environment-for-develop)
 
@@ -78,8 +82,24 @@ This setup allows you to run Flink locally with:
 
 ---
 
-## Flink data streams api
+### Data Sources
 
-- [From Collection, Elements, Sequence and Source](docs/data-streams-api/README.md)
+Examples of how to connect Flink to different data sources:
 
+* **Collections and Sequences**: [From Collection, Elements, Sequence and Source](projects/flink-data-sources/collections-source-connectors) ([Documentation](docs/data-streams-api/README.md))
+* **Kafka**: [Kafka Source Connector](projects/flink-data-sources/data-source-kafka-connector)
+* **MongoDB**: [MongoDB Source Connector](projects/flink-data-sources/data-source-mongodb)
 
+---
+
+### Processing Examples
+
+Various processing patterns using Flink:
+
+* **Hello World**: [Simple Flink Application](projects/flink-hello-world)
+* **Batch Processing**: [Word Count (Batch)](projects/flink-works-counter-batch-processing)
+* **Stream Processing**: [Word Count (Streaming)](projects/flink-works-counter-stream-processing)
+* **Socket Streaming**: [Socket Word Count](projects/flink-works-counter-stream-socket-processing)
+* **Java 8 Lambdas**: [DataStream API with Java 8 Lambdas](projects/flink-data-stream-api-and-Java-8-Lambda-expression)
+
+---

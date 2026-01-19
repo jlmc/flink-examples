@@ -1,0 +1,20 @@
+{
+  "request": {
+    "method": "PUT",
+    "url": "/api/users/101",
+    "bodyPatterns": [
+      {
+        "matchesJsonPath": "$.name"
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "jsonBody": {
+      "id": 101,
+      "name": "Alice Updated",
+      "email": "alice@example.com",
+      "status": "ACTIVE"
+    }
+  }
+}

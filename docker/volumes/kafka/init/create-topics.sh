@@ -14,5 +14,6 @@ echo "Kafka is ready!"
 
 /usr/bin/kafka-topics --create --topic my-data-stream --bootstrap-server kafka:19092 --partitions 3 --replication-factor 1
 /usr/bin/kafka-topics --create --topic user-events --bootstrap-server kafka:19092 --partitions 2 --replication-factor 1
+/usr/bin/kafka-topics --create --topic person-location-events --bootstrap-server kafka:19092 --partitions 2 --replication-factor 1
 
 echo "All required topics created successfully."

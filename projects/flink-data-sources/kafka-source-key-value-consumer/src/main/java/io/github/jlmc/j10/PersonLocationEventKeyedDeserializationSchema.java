@@ -16,9 +16,9 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
-public class CustomKeyValueKafkaRecordDeserializationSchema implements KafkaRecordDeserializationSchema<Tuple2<String, PersonLocationEvent>> {
+public class PersonLocationEventKeyedDeserializationSchema implements KafkaRecordDeserializationSchema<Tuple2<String, PersonLocationEvent>> {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(CustomKeyValueKafkaRecordDeserializationSchema.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(PersonLocationEventKeyedDeserializationSchema.class);
 
     private transient JsonDeserializationSchema<PersonLocationEvent> valueDeserializer;
     private transient ObjectMapper objectMapper;

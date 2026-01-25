@@ -15,13 +15,13 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
-public class CustomKeyValueKafkaRecordDeserializationSchemaTest {
+public class PersonLocationEventKeyedDeserializationSchemaTest {
 
-    private CustomKeyValueKafkaRecordDeserializationSchema schema;
+    private PersonLocationEventKeyedDeserializationSchema schema;
 
     @BeforeEach
     public void setUp() {
-        schema = new CustomKeyValueKafkaRecordDeserializationSchema();
+        schema = new PersonLocationEventKeyedDeserializationSchema();
         schema.open(null);
     }
 

@@ -63,7 +63,7 @@ public class KafkaConsumeKeyValueJob {
                         //.setBounded(org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer.latest())
 
                         //.setValueOnlyDeserializer(deserializationSchema)
-                        .setDeserializer(new CustomKeyValueKafkaRecordDeserializationSchema())
+                        .setDeserializer(new PersonLocationEventKeyedDeserializationSchema())
 
                         .setProperty(KafkaSourceOptions.COMMIT_OFFSETS_ON_CHECKPOINT.key(), "true")
                         //.setProperty(org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "5000")

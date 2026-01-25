@@ -46,7 +46,8 @@
 
     <modules>
         <module>collections-source-connectors</module>
-        <module>data-source-kafka-connector</module>
         <module>data-source-mongodb</module>
+        <module>data-source-kafka-connector</module>
+        <module>kafka-source-json-consumer</module>
     </modules>
 </project>

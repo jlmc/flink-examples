@@ -31,12 +31,14 @@ EOF
 
     echo "[$(date +"%H:%M:%S")] Producing for $USER"
 
-    echo "SEND MESSAGE: $MESSAGE"
+    echo "SEND MESSAGE: $USER:$MESSAGE"
 
     docker exec -i "$KAFKA_CONTAINER" bash -c "
-      echo '$MESSAGE' | kafka-console-producer \
+      echo '$USER:$MESSAGE' | kafka-console-producer \
         --bootstrap-server $BROKER \
-        --topic $TOPIC
+        --topic $TOPIC \
+        --property parse.key=true \
+        --property key.separator=:
     "
 
     sleep "$DELAY"

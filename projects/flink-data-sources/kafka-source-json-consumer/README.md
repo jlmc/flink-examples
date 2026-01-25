@@ -1,70 +1,97 @@
-# kafka source json consumer
+# Kafka Source JSON Consumer
 
-This project is an example of how to configure a simple Kafka source for Apache Flink using the `KafkaSource` connector. It demonstrates reading string values from a Kafka topic and printing them to the console.
+In this module, we demonstrate how to consume JSON messages from a Kafka topic using Apache Flink's `KafkaSource` and `JsonDeserializationSchema`.
+
+## Overview
+
+This example sets up a Flink DataStream job that:
+1. Connects to a Kafka broker.
+2. Reads messages from the `person-location-events` topic.
+3. Deserializes JSON payloads into Java `record` objects (`PersonLocationEvent`).
+4. Prints the deserialized events to the standard output.
+
+This example is based on the official Flink documentation:
+- [Kafka Source Connector](https://nightlies.apache.org/flink/flink-docs-master/docs/dev/datastream/sources/kafka/)
+- [JSON Format](https://nightlies.apache.org/flink/flink-docs-release-1.20/docs/connectors/datastream/formats/json/)
 
 ## Prerequisites
 
-- Docker and Docker Compose
-- Java 17 or higher
-- Maven
+- **Java 17**
+- **Maven 3.x**
+- **Docker and Docker Compose** (for running Kafka)
+- **Python 3** (optional, used by the producer script on macOS)
 
-## Infrastructure
+## Getting Started
 
-The project uses Docker Compose to manage the necessary infrastructure (Kafka and Kafka UI).
+### 1. Start Kafka Broker
 
-### Docker Compose Services
-
-The following services are defined in the root `docker-compose.yaml`:
-
-- **kafka**: The Kafka broker.
-- **kafka-ui**: A web interface to manage and browse Kafka clusters.
-- **kafka-init**: A helper service that automatically creates the required topics (`my-data-stream`, `user-events`) on startup.
-
-To start the infrastructure, run from the project root:
+Use the provided `docker-compose.yaml` in the project root to start the Kafka environment:
 
 ```bash
-docker compose up -d kafka kafka-ui kafka-init
+docker-compose up -d kafka-ui
 ```
 
-### Web Interfaces
+The Kafka broker will be available at `localhost:9092`.
 
-| Service          | URL                                                                                |
-|:-----------------|:-----------------------------------------------------------------------------------|
-| **Kafka UI**     | [http://localhost:8085](http://localhost:8085)                                     |
-| **Flink Web UI** | [http://localhost:8081](http://localhost:8081) (Available when the job is running) |
+### 2. Dependencies
 
-## Kafka Topic Management
+To use the JSON format in Flink, ensure the `flink-json` dependency is included in your `pom.xml`. Since it's usually provided by the Flink cluster, we set the scope to `provided`:
 
-### Produce Messages (JSON)
+```xml
+<dependency>
+    <groupId>org.apache.flink</groupId>
+    <artifactId>flink-json</artifactId>
+    <version>1.20.3</version>
+    <scope>provided</scope>
+</dependency>
+```
 
-You can produce JSON messages to the `my-data-stream` topic using the following command:
+**Note:** In this module, we use Flink's shaded Jackson annotations (`org.apache.flink.shaded.jackson2.com.fasterxml.jackson.annotation.JsonProperty`) in the `PersonLocationEvent` model to ensure compatibility with Flink's internal Jackson version.
+
+### 3. Run the Flink Job
+
+#### From IntelliJ IDEA
+- Open the project in IntelliJ.
+- Locate the `.run/KafkaSourceJsonConsumerJob.run.xml` file.
+- Right-click and select **Run 'KafkaSourceJsonConsumerJob'**.
+- The Flink Web UI will be available at [http://localhost:8081](http://localhost:8081).
+
+#### From Command Line
+Build the shaded JAR:
+```bash
+mvn clean package -pl projects/flink-data-sources/kafka-source-json-consumer
+```
+Run the job (ensure a Flink cluster is running or run it locally):
+```bash
+java -cp projects/flink-data-sources/kafka-source-json-consumer/target/kafka-source-json-consumer-1.0-SNAPSHOT-shaded.jar io.github.jlmc.j9.KafkaSourceJsonConsumerJob
+```
+
+### 4. Produce Sample Data
+
+Use the provided script to generate sample JSON messages in a loop:
 
 ```bash
-docker exec -i kafka kafka-console-producer --bootstrap-server localhost:9092 --topic my-data-stream <<EOF
-{"id": 1, "message": "Hello Flink", "timestamp": "$(date +%s)"}
-{"id": 2, "message": "Streaming with Kafka", "timestamp": "$(date +%s)"}
-EOF
+./projects/flink-data-sources/kafka-source-json-consumer/docker-exec-kafka-producer-loop.sh
 ```
 
-### Useful Commands
-
-```bash
-# List topics
-docker exec kafka kafka-topics --list --bootstrap-server localhost:9092
-
-# Describe topic
-docker exec kafka kafka-topics --describe --topic my-data-stream --bootstrap-server localhost:9092
-
-# Consume messages
-docker exec kafka kafka-console-consumer --bootstrap-server localhost:9092 --topic my-data-stream --from-beginning --timeout-ms 5000
-
-# Describe consumer group
-docker exec kafka kafka-run-class kafka.admin.ConsumerGroupCommand --bootstrap-server localhost:9092 --group KafkaSourceConnectorStringValueOnly --describe
+The script produces messages in the following format:
+```json
+{
+  "person_id": "user-1",
+  "latitude": 42.3118,
+  "longitude": -72.6882,
+  "event_timestamp": 1769358411300
+}
 ```
 
-## Running the Example
+## Project Structure
 
-1. Start the infrastructure: `docker compose up -d kafka kafka-ui kafka-init`.
-2. Run the `KafkaSourceConnectorStringValueOnly` class from your IDE or using Maven.
-3. Produce some messages using the commands above.
-4. Check the console output or the Flink Web UI to see the processed data.
+- `KafkaSourceJsonConsumerJob.java`: The main Flink job configuration.
+- `PersonLocationEvent.java`: The POJO (Java record) representing the JSON event, using shaded Jackson annotations.
+- `docker-exec-kafka-producer-loop.sh`: A shell script to simulate a data producer.
+- `PersonLocationEventDeserializationTest.java`: Unit tests for verifying JSON deserialization.
+
+## Troubleshooting
+
+- **UnrecognizedPropertyException**: Ensure you are using the shaded Jackson annotations from `org.apache.flink.shaded.jackson2`. Standard Jackson annotations are ignored by Flink's `JsonDeserializationSchema`.
+- **JsonParseException (macOS)**: If you see errors related to the timestamp (e.g., trailing 'N'), ensure the producer script is using `python3` for millisecond generation, as the BSD `date` command on macOS doesn't support `%N`.

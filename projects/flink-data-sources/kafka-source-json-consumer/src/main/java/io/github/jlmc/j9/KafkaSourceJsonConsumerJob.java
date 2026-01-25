@@ -1,7 +1,7 @@
 package io.github.jlmc.j9;
 
+import io.github.jlmc.j9.model.PersonLocationEvent;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
-import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.RestOptions;
 import org.apache.flink.configuration.TaskManagerOptions;
@@ -9,6 +9,7 @@ import org.apache.flink.connector.kafka.source.KafkaSource;
 import org.apache.flink.connector.kafka.source.KafkaSourceOptions;
 import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer;
 import org.apache.flink.core.execution.CheckpointingMode;
+import org.apache.flink.formats.json.JsonDeserializationSchema;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 import org.slf4j.Logger;
@@ -40,15 +41,22 @@ public class KafkaSourceJsonConsumerJob {
         env.setParallelism(1); // Set parallelism to 1 for simplicity, by default it is the number of CPU cores
 
         env.enableCheckpointing(3000, CheckpointingMode.EXACTLY_ONCE);
-        KafkaSource<String> kafkaSource =
-                KafkaSource.<String>builder()
+
+        JsonDeserializationSchema<PersonLocationEvent> deserializationSchema = new JsonDeserializationSchema<>(PersonLocationEvent.class);
+
+        KafkaSource<PersonLocationEvent> kafkaSource =
+                KafkaSource.<PersonLocationEvent>builder()
                         .setBootstrapServers("localhost:9092")
-                        .setTopics("my-data-stream")
-                        .setGroupId("KafkaSourceConnectorStringValueOnly")
+                        .setTopics("person-location-events")
+                        .setGroupId("KafkaSourceJsonConsumerJob")
                         // configure other options as needed
                         .setStartingOffsets(OffsetsInitializer.committedOffsets(OffsetResetStrategy.EARLIEST))
                         //.setBounded(org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer.latest())
-                        .setValueOnlyDeserializer(new SimpleStringSchema())
+
+                        .setValueOnlyDeserializer(deserializationSchema)
+                        //.setValueOnlyDeserializer(new SimpleStringSchema())
+
+
                         .setProperty(KafkaSourceOptions.COMMIT_OFFSETS_ON_CHECKPOINT.key(), "true")
                         //.setProperty(org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "5000")
                         .build();

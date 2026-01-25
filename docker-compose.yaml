@@ -99,51 +99,50 @@ services:
       - infra_network
 
   # --------------------
-  # 3. localstack AWS MOCK SERVICE
+  # 3. localstack AWS S3 MOCK SERVICE
   # --------------------
-  localstack:
-    # https://app.localstack.cloud/getting-started
-    # https://app.localstack.cloud/inst/default/status
-    # https://hub.docker.com/r/localstack/localstack
-    # docker pull localstack/localstack:4.11.1
-    # image: localstack/localstack:latest
-    ## ---
-    # How to see a particular service:
-    # https://app.localstack.cloud/getting-started
-    # https://app.localstack.cloud/inst/default/status
-    # -----
-    image: localstack/localstack:4.11.1
-    container_name: "${LOCALSTACK_DOCKER_NAME:-localstack-main}"
-    environment:
-      # LocalStack configuration: https://docs.localstack.cloud/references/configuration/
-      - SERVICES=s3,sqs,lambda
-      - DATA_DIR=/tmp/localstack/data
-      - DOCKER_HOST=unix:///var/run/docker.sock
-      - AWS_ACCESS_KEY_ID=test
-      - AWS_SECRET_ACCESS_KEY=test
-      - AWS_DEFAULT_REGION=us-east-1
-      - DEBUG=0
-      - DEBUG=${DEBUG:-0}
-      - LOCALSTACK_API_KEY=${LOCALSTACK_API_KEY-}   # optional
-      - LOCALSTACK_UI=1
-    ports:
-      - "127.0.0.1:4566:4566"            # LocalStack Gateway
-      - "127.0.0.1:4510-4559:4510-4559"  # external services port range
-      - "8083:8080"        # <-- Web UI exposed here! http://localhost:4566/
+  minio:
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z-cpuv1
+    hostname: minio
+    container_name: minio
     networks:
       - infra_network
+    ports:
+      - "9002:9000" # aws s3 endpoint
+      - "9001:9001" # minio console http://localhost:9001
+    environment:
+      MINIO_ACCESS_KEY: minio
+      MINIO_SECRET_KEY: minio123
+    command: server /data --console-address ":9001"
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:4566/_localstack/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 20s
-    volumes:
-      #- "${LOCALSTACK_VOLUME_DIR:-./volume}:/var/lib/localstack"
-      #- "/var/run/docker.sock:/var/run/docker.sock"
-      - ./docker/volumes/localstack/init/init-aws.sh:/etc/localstack/init/ready.d/init-aws.sh
-      - ./docker/volumes/localstack/data:/var/lib/localstack
-      - "/var/run/docker.sock:/var/run/docker.sock"
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  minio_setup:
+    image: minio/mc:RELEASE.2025-08-13T08-35-41Z-cpuv1
+    container_name: minio_setup
+    networks:
+      - infra_network
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -e -c "
+      echo 'Waiting for MinIO...';
+      sleep 5;
+
+      mc alias set minio http://minio:9000 minio minio123;
+
+      mc mb --ignore-existing minio/patient-adt-processing-bucket;
+
+      echo 'Creating prefixes (folders)...';
+      echo '' | mc pipe minio/patient-adt-processing-bucket/flink/checkpoints/.keep;
+      echo '' | mc pipe minio/patient-adt-processing-bucket/flink/savepoints/.keep;
+
+      echo 'MinIO setup completed successfully';
+      "
 
   # --------------------
   # 5. postgresql SERVICE

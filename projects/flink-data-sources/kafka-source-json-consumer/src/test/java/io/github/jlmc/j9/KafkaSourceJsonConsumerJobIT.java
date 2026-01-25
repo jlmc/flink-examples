@@ -17,6 +17,7 @@ import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
+import org.testcontainers.utility.TestcontainersConfiguration;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -32,7 +33,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class KafkaSourceJsonConsumerJobIT {
 
     @Container
-    private static final KafkaContainer KAFKA = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.7.2"))
+
+    private static final KafkaContainer KAFKA = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.7.2").asCompatibleSubstituteFor("confluentinc/cp-kafka"))
             .withEnv("KAFKA_AUTO_CREATE_TOPICS_ENABLE", "true")
             .withEnv("KAFKA_BROKER_ID", "1")
             .withEnv("KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR", "1")
@@ -41,6 +43,25 @@ public class KafkaSourceJsonConsumerJobIT {
             .withEnv("KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR", "1");
 
     private static final String TOPIC = "person-location-events";
+
+    static {
+        String os = System.getProperty("os.name").toLowerCase();
+        if (os.contains("mac")) {
+            String userHome = System.getProperty("user.home");
+            String[] commonSockets = {
+                    userHome + "/.docker/run/docker.sock",
+                    "/var/run/docker.sock",
+                    userHome + "/Library/Containers/com.docker.docker/Data/docker-cli.sock"
+            };
+
+            for (String socketPath : commonSockets) {
+                if (new java.io.File(socketPath).exists()) {
+                    TestcontainersConfiguration.getInstance().updateUserConfig("docker.host", "unix://" + socketPath);
+                    break;
+                }
+            }
+        }
+    }
 
     @BeforeAll
     static void beforeAll() throws Exception {

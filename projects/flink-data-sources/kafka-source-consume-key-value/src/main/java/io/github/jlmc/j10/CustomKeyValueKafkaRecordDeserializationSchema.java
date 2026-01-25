@@ -30,6 +30,8 @@ public class CustomKeyValueKafkaRecordDeserializationSchema implements KafkaReco
         valueDeserializer = new JsonDeserializationSchema<>(PersonLocationEvent.class);
         objectMapper = JacksonMapperFactory.createObjectMapper();
 
+        valueDeserializer.open(context);
+
         LOGGER.info("CustomKeyValueKafkaRecordDeserializationSchema opened successfully, object mapper {}", objectMapper.hashCode());
     }
 
@@ -49,7 +51,8 @@ public class CustomKeyValueKafkaRecordDeserializationSchema implements KafkaReco
         // Deserialize the value (using JSON as an example)
         PersonLocationEvent value = null;
         if (consumerRecord.value() != null) {
-            value = valueDeserializer.deserialize(consumerRecord.value());
+            byte[] recordValue = consumerRecord.value();
+            value = valueDeserializer.deserialize(recordValue);
         }
 
         // Emit the tuple

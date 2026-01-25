@@ -1,97 +1,154 @@
-# Kafka Source JSON Consumer
+Got it! Here’s the **updated README in English**, including Docker, the producer script, and the IntelliJ run
+configuration.
 
-In this module, we demonstrate how to consume JSON messages from a Kafka topic using Apache Flink's `KafkaSource` and `JsonDeserializationSchema`.
+---
 
-## Overview
+# Kafka Key-Value Consumer with Flink
 
-This example sets up a Flink DataStream job that:
-1. Connects to a Kafka broker.
-2. Reads messages from the `person-location-events` topic.
-3. Deserializes JSON payloads into Java `record` objects (`PersonLocationEvent`).
-4. Prints the deserialized events to the standard output.
+This project demonstrates a **Flink streaming job** that consumes key-value events from a Kafka topic, where the value
+is a JSON representing `PersonLocationEvent`. The job deserializes both the key and value, processes the events, and
+prints them to the console.
 
-This example is based on the official Flink documentation:
-- [Kafka Source Connector](https://nightlies.apache.org/flink/flink-docs-master/docs/dev/datastream/sources/kafka/)
-- [JSON Format](https://nightlies.apache.org/flink/flink-docs-release-1.20/docs/connectors/datastream/formats/json/)
+---
 
-## Prerequisites
+## **Project Structure**
 
-- **Java 17**
-- **Maven 3.x**
-- **Docker and Docker Compose** (for running Kafka)
-- **Python 3** (optional, used by the producer script on macOS)
+```
+src/main/java/io/github/jlmc/j10/
+│
+├── CustomKeyValueKafkaRecordDeserializationSchema.java
+│   - Custom schema that reads the key (String) and value (JSON → PersonLocationEvent).
+│
+├── PersonLocationEvent.java
+│   - POJO representing a person’s location event (fields: id, name, location, timestamp).
+│
+└── KafkaConsumeKeyValueJob.java
+    - Flink job that consumes events from Kafka, deserializes them, and prints them to the console.
+```
 
-## Getting Started
+**Run Configuration:**
+The project includes a ready-to-use IntelliJ run configuration:
+`KafkaConsumeKeyValueJob.run.xml` — allows running the job directly from the IDE without using the terminal.
 
-### 1. Start Kafka Broker
+---
 
-Use the provided `docker-compose.yaml` in the project root to start the Kafka environment:
+## **Prerequisites**
+
+* Java 11+
+* Apache Flink 1.16+ (or compatible version)
+* Apache Kafka 3.x
+* Docker and Docker Compose
+* Maven or Gradle for building the project
+
+---
+
+## **Setup**
+
+1. **Start Kafka using Docker**
+
+It is necessary to start the Kafka container:
 
 ```bash
-docker-compose up -d kafka-ui
+docker compose up -d kafka
 ```
 
-The Kafka broker will be available at `localhost:9092`.
+Ensure Kafka is running before starting the Flink job.
 
-### 2. Dependencies
-
-To use the JSON format in Flink, ensure the `flink-json` dependency is included in your `pom.xml`. Since it's usually provided by the Flink cluster, we set the scope to `provided`:
-
-```xml
-<dependency>
-    <groupId>org.apache.flink</groupId>
-    <artifactId>flink-json</artifactId>
-    <version>1.20.3</version>
-    <scope>provided</scope>
-</dependency>
-```
-
-**Note:** In this module, we use Flink's shaded Jackson annotations (`org.apache.flink.shaded.jackson2.com.fasterxml.jackson.annotation.JsonProperty`) in the `PersonLocationEvent` model to ensure compatibility with Flink's internal Jackson version.
-
-### 3. Run the Flink Job
-
-#### From IntelliJ IDEA
-- Open the project in IntelliJ.
-- Locate the `.run/KafkaSourceJsonConsumerJob.run.xml` file.
-- Right-click and select **Run 'KafkaSourceJsonConsumerJob'**.
-- The Flink Web UI will be available at [http://localhost:8081](http://localhost:8081).
-
-#### From Command Line
-Build the shaded JAR:
-```bash
-mvn clean package -pl projects/flink-data-sources/kafka-source-json-consumer
-```
-Run the job (ensure a Flink cluster is running or run it locally):
-```bash
-java -cp projects/flink-data-sources/kafka-source-json-consumer/target/kafka-source-json-consumer-1.0-SNAPSHOT-shaded.jar io.github.jlmc.j9.KafkaSourceJsonConsumerJob
-```
-
-### 4. Produce Sample Data
-
-Use the provided script to generate sample JSON messages in a loop:
+2. **Create Kafka topic**
 
 ```bash
-./projects/flink-data-sources/kafka-source-json-consumer/docker-exec-kafka-producer-loop.sh
+/usr/bin/kafka-topics.sh --create --topic person-location-events --bootstrap-server kafka:19092 --partitions 2 --replication-factor 1
+
 ```
 
-The script produces messages in the following format:
+3. **Build the project**
+
+Using Maven:
+
+```bash
+mvn clean package
+```
+
+---
+
+## **Producing messages with Key**
+
+To produce messages with a key to Kafka, you can use the provided script:
+
+```bash
+docker-exec-kafka-producer-loop.sh
+```
+
+* This script sends JSON messages in the expected `PersonLocationEvent` format to the `person-location-events` topic.
+* Each message has a **key** (String) and a **value** (JSON).
+
+Example message:
+
+* **Key**: `"user-123"`
+* **Value**:
+
 ```json
 {
-  "person_id": "user-1",
-  "latitude": 42.3118,
-  "longitude": -72.6882,
-  "event_timestamp": 1769358411300
+  "id": "user-123",
+  "name": "Alice",
+  "location": "New York",
+  "timestamp": 1674500000
 }
 ```
 
-## Project Structure
+---
 
-- `KafkaSourceJsonConsumerJob.java`: The main Flink job configuration.
-- `PersonLocationEvent.java`: The POJO (Java record) representing the JSON event, using shaded Jackson annotations.
-- `docker-exec-kafka-producer-loop.sh`: A shell script to simulate a data producer.
-- `PersonLocationEventDeserializationTest.java`: Unit tests for verifying JSON deserialization.
+## **Running the Flink Job**
 
-## Troubleshooting
+Run locally with the web UI:
 
-- **UnrecognizedPropertyException**: Ensure you are using the shaded Jackson annotations from `org.apache.flink.shaded.jackson2`. Standard Jackson annotations are ignored by Flink's `JsonDeserializationSchema`.
-- **JsonParseException (macOS)**: If you see errors related to the timestamp (e.g., trailing 'N'), ensure the producer script is using `python3` for millisecond generation, as the BSD `date` command on macOS doesn't support `%N`.
+```bash
+java -jar target/kafka-flink-consumer-job.jar
+```
+
+* Connects to Kafka at `localhost:9092` by default.
+* Web UI available at [http://localhost:8081](http://localhost:8081)
+* Expected console output:
+
+```
+Received event key: user-123, value: PersonLocationEvent{id='user-123', name='Alice', location='NYC', timestamp=1674500000}
+```
+
+Alternatively, run the job directly from IntelliJ using the included run configuration:
+`KafkaConsumeKeyValueJob.run.xml`.
+
+---
+
+## **Kafka Consumer Configuration**
+
+* **Bootstrap servers**: `localhost:9092`
+* **Topic**: `person-location-events`
+* **Group ID**: `KafkaSourceJsonConsumerJob`
+* **Checkpointing**: enabled every 3 seconds (`EXACTLY_ONCE`)
+* **Parallelism**: 1 (configurable)
+
+---
+
+## **Custom Deserialization**
+
+`CustomKeyValueKafkaRecordDeserializationSchema` (or `PersonLocationEventKeyedDeserializationSchema`) handles:
+
+* Key: `String`
+* Value: JSON → `PersonLocationEvent` POJO
+* Null-safe deserialization
+* Logging:
+
+    * `DEBUG` for record information
+    * `TRACE` for emitted tuples
+    * `WARN` for null keys or values
+
+---
+
+## **Extending the Project**
+
+* Support multiple key types (e.g., Integer)
+* Add Flink operators (filter, map, aggregations)
+* Configure Kafka consumer properties (`max.poll.records`, `auto.offset.reset`, etc.)
+* Implement watermarking for event-time processing
+
+---

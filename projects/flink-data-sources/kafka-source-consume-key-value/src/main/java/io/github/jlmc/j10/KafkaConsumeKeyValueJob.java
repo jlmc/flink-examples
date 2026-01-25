@@ -1,6 +1,7 @@
 package io.github.jlmc.j10;
 
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
+import org.apache.flink.api.common.typeinfo.Types;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.RestOptions;
@@ -35,6 +36,7 @@ public class KafkaConsumeKeyValueJob {
         DataStream<Tuple2<String, PersonLocationEvent>> stream = createJob(env, "localhost:9092");
 
         stream.map((Tuple2<String, PersonLocationEvent> it) -> "Received event key: " + it.f0 + ", value: " + it.f1)
+                .returns(Types.STRING)
                 .print()
                 .name("Print to Console")
                 .uid("print-to-console");

@@ -5,7 +5,6 @@ import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeinfo.Types;
 import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.api.java.typeutils.TupleTypeInfo;
 import org.apache.flink.connector.kafka.source.reader.deserializer.KafkaRecordDeserializationSchema;
 import org.apache.flink.connector.kafka.util.JacksonMapperFactory;
 import org.apache.flink.formats.json.JsonDeserializationSchema;
@@ -43,16 +42,19 @@ public class CustomKeyValueKafkaRecordDeserializationSchema implements KafkaReco
         // int key = ByteBuffer.wrap(consumerRecord.key()).getInt();
         // Deserialize the key (assuming UTF-8 encoding)
 
-        String key = null;
-        if (consumerRecord.key() != null) {
-            key = new String(consumerRecord.key(), StandardCharsets.UTF_8);
+        String key = consumerRecord.key() != null ? new String(consumerRecord.key(), StandardCharsets.UTF_8) : null;
+
+        if (key == null) {
+            LOGGER.warn("Received null key");
         }
 
         // Deserialize the value (using JSON as an example)
-        PersonLocationEvent value = null;
-        if (consumerRecord.value() != null) {
-            byte[] recordValue = consumerRecord.value();
-            value = valueDeserializer.deserialize(recordValue);
+        PersonLocationEvent value = consumerRecord.value() != null
+                ? valueDeserializer.deserialize(consumerRecord.value())
+                : null;
+
+        if (value == null) {
+            LOGGER.warn("Received null value for key {}", key);
         }
 
         // Emit the tuple
@@ -62,6 +64,6 @@ public class CustomKeyValueKafkaRecordDeserializationSchema implements KafkaReco
 
     @Override
     public TypeInformation<Tuple2<String, PersonLocationEvent>> getProducedType() {
-        return new TupleTypeInfo<>(Types.TUPLE(Types.STRING, Types.POJO(PersonLocationEvent.class)));
+        return Types.TUPLE(Types.STRING, Types.POJO(PersonLocationEvent.class));
     }
 }

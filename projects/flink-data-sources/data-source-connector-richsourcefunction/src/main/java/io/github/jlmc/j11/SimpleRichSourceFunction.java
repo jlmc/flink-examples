@@ -9,9 +9,9 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class SimpleSourceFunction extends RichSourceFunction<Long> {
+public class SimpleRichSourceFunction extends RichSourceFunction<Long> {
 
-    private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(SimpleSourceFunction.class);
+    private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(SimpleRichSourceFunction.class);
 
     private static final AtomicBoolean running = new AtomicBoolean(true);
 

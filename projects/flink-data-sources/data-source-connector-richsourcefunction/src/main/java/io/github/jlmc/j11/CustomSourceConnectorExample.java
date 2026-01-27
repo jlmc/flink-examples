@@ -9,7 +9,7 @@ public class CustomSourceConnectorExample {
 
         StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(new Configuration());
 
-        env.addSource(new SimpleSourceFunction(), "Custom Simple Source Function")
+        env.addSource(new SimpleRichSourceFunction(), "Custom Simple Source Function")
                 .print();
 
         env.execute("Custom Source Connector Example");

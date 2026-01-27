@@ -88,7 +88,10 @@ Examples of how to connect Flink to different data sources:
 
 * **Collections and Sequences**: [From Collection, Elements, Sequence and Source](projects/flink-data-sources/collections-source-connectors) ([Documentation](docs/data-streams-api/README.md))
 * **Kafka**: [Kafka Source Connector](projects/flink-data-sources/data-source-kafka-connector)
+* **Kafka JSON**: [Kafka JSON Source Consumer](projects/flink-data-sources/kafka-source-json-consumer)
+* **Kafka Key-Value**: [Kafka Key-Value Source Consumer](projects/flink-data-sources/kafka-source-key-value-consumer)
 * **MongoDB**: [MongoDB Source Connector](projects/flink-data-sources/data-source-mongodb)
+* **Custom Rich Source**: [Custom Rich Source Connectors](projects/flink-data-sources/custom-rich-source-connectors)
 
 ---
 

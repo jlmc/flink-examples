@@ -52,10 +52,10 @@ public class SimpleRichParallelSourceFunction extends RichParallelSourceFunction
             to = this.end;
         }
 
-        for (long i = start; i < to && running.get(); i++) {
+        for (long i = start; i <= to && running.get(); i++) {
             //synchronized (ctx.getCheckpointLock()) {
             ctx.collect(i);
-            TimeUnit.SECONDS.sleep(1L);
+            //TimeUnit.SECONDS.sleep(1L);
             //}
         }
 

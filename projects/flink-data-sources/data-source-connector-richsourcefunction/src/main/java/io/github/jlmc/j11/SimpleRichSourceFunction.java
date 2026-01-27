@@ -29,7 +29,7 @@ public class SimpleRichSourceFunction extends RichSourceFunction<Long> {
         while (running.get()) {
             long value = ThreadLocalRandom.current().nextLong(2_000);
             ctx.collect(value);
-            TimeUnit.MILLISECONDS.sleep(value);
+            TimeUnit.MILLISECONDS.sleep(100);
         }
     }
 

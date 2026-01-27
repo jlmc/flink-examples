@@ -13,7 +13,7 @@ public class SimpleRichSourceFunction extends RichSourceFunction<Long> {
 
     private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(SimpleRichSourceFunction.class);
 
-    private static final AtomicBoolean running = new AtomicBoolean(true);
+    private final AtomicBoolean running = new AtomicBoolean(true);
 
     @Override
     public void open(OpenContext openContext) {

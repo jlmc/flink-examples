@@ -12,7 +12,6 @@ public class CustomSourceConnectorExample {
 
         //DataStream<Long> customSimpleSourceFunction = simpleRichSourceFunction(env);
 
-
         DataStream<Long> longDataStreamSource = simpleRichParallelSourceFunction(env);
 
         longDataStreamSource.print();

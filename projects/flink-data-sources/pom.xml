@@ -50,6 +50,6 @@
         <module>data-source-kafka-connector</module>
         <module>kafka-source-json-consumer</module>
         <module>kafka-source-key-value-consumer</module>
-        <module>data-source-connector-richsourcefunction</module>
+        <module>custom-rich-source-connectors</module>
     </modules>
 </project>

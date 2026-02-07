@@ -12,7 +12,7 @@ It supports **batch processing**, **graph processing**, and **iterative processi
 Think of Flink as the **next-generation engine for stream processing**—like “4G for Big Data processing.”
 
 In these examples we are using the Flink version [1.20](https://nightlies.apache.org/flink/flink-docs-release-1.20/docs/)
-
+https://nightlies.apache.org/flink/flink-docs-release-1.20/docs/connectors/datastream/dynamic-kafka/
 ---
 
 ## Table of Contents

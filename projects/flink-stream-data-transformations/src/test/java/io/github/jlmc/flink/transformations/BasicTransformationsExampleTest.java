@@ -74,4 +74,31 @@ public class BasicTransformationsExampleTest {
 
         assertThat(CollectSink.VALUES).containsExactlyInAnyOrder("a", "b", "c");
     }
+
+    @Test
+    void testFlatMapWithFilterTransformation() throws Exception {
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        env.setParallelism(2);
+
+        DataStream<String> input = env.fromData("white", "black", "white", "gray", "black", "white");
+
+        input.flatMap((String color, org.apache.flink.util.Collector<String> collector) -> {
+                    switch (color) {
+                        case "white":
+                            collector.collect(color.toUpperCase());
+                            break;
+                        case "black":
+                            collector.collect(color);
+                            collector.collect(color);
+                            break;
+                        default:
+                            break;
+                    }
+        }, Types.STRING)
+       .addSink(new CollectSink<>());
+
+        env.execute();
+
+        assertThat(CollectSink.VALUES).containsExactlyInAnyOrder("WHITE", "black", "black", "WHITE", "black", "black", "WHITE");
+    }
 }

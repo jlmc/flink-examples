@@ -28,6 +28,8 @@ https://nightlies.apache.org/flink/flink-docs-release-1.20/docs/connectors/datas
     * [Data Sources](#data-sources)
     * [Processing Examples](#processing-examples)
 6. [Flink Operator Parallelism](docs/operator-parallelism/README.md)
+7. [DataStream API](#datastream-api)
+    * [Stream Data Transformations](docs/data-streams-api/DataStream-Transformations.md)
 
 ---
 
@@ -106,3 +108,9 @@ Various processing patterns using Flink:
 * **Java 8 Lambdas**: [DataStream API with Java 8 Lambdas](projects/flink-data-stream-api-and-Java-8-Lambda-expression)
 
 ---
+
+---
+
+## DataStream API
+
+* [Stream Data Transformations](docs/data-streams-api/DataStream-Transformations.md) ([Portuguese Version](docs/data-streams-api/DataStream-Transformations_PT.md))

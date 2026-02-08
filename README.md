@@ -107,6 +107,11 @@ Various processing patterns using Flink:
 * **Socket Streaming**: [Socket Word Count](projects/flink-works-counter-stream-socket-processing)
 * **Java 8 Lambdas**: [DataStream API with Java 8 Lambdas](projects/flink-data-stream-api-and-Java-8-Lambda-expression)
 * **Stream Data Transformations**: [DataStream API Transformations Examples](projects/flink-stream-data-transformations)
+    * [Basic Transformations](projects/flink-stream-data-transformations/src/main/java/io/github/jlmc/flink/transformations/BasicTransformationsExample.java) ([Test](projects/flink-stream-data-transformations/src/test/java/io/github/jlmc/flink/transformations/BasicTransformationsExampleTest.java))
+    * [KeyedStream Transformations](projects/flink-stream-data-transformations/src/main/java/io/github/jlmc/flink/transformations/KeyedStreamTransformationsExample.java) ([Test](projects/flink-stream-data-transformations/src/test/java/io/github/jlmc/flink/transformations/KeyedStreamTransformationsExampleTest.java))
+    * [Multistream Transformations](projects/flink-stream-data-transformations/src/main/java/io/github/jlmc/flink/transformations/MultistreamTransformationsExample.java) ([Test](projects/flink-stream-data-transformations/src/test/java/io/github/jlmc/flink/transformations/MultistreamTransformationsExampleTest.java))
+    * [Distribution Transformations](projects/flink-stream-data-transformations/src/main/java/io/github/jlmc/flink/transformations/DistributionTransformationsExample.java) ([Test](projects/flink-stream-data-transformations/src/test/java/io/github/jlmc/flink/transformations/DistributionTransformationsExampleTest.java))
+    * [KeyedProcessFunction](projects/flink-stream-data-transformations/src/main/java/io/github/jlmc/flink/transformations/KeyedProcessFunctionExample.java) ([Test](projects/flink-stream-data-transformations/src/test/java/io/github/jlmc/flink/transformations/KeyedProcessFunctionExampleTest.java))
 
 ---
 

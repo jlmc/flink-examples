@@ -13,6 +13,9 @@
     <properties>
         <java.version>17</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        
+        <flink.version>1.20.3</flink.version>
+        <junit-jupiter.version>5.13.3</junit-jupiter.version>
     </properties>
 
     <modules>
@@ -23,5 +26,7 @@
         <module>projects/flink-data-stream-api-and-Java-8-Lambda-expression</module>
         <module>projects/flink-local-environment-for-develop</module>
         <module>projects/flink-data-sources</module>
+        <module>projects/flink-stream-data-transformations</module>
+
     </modules>
 </project>

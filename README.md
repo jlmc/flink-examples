@@ -11,8 +11,8 @@ It supports **batch processing**, **graph processing**, and **iterative processi
 *extremely fast stream processing capabilities**.
 Think of Flink as the **next-generation engine for stream processing**—like “4G for Big Data processing.”
 
-In these examples we are using the Flink version [1.20](https://nightlies.apache.org/flink/flink-docs-release-1.20/docs/)
-
+In these examples we are using the Flink version [1.20.3](https://nightlies.apache.org/flink/flink-docs-release-1.20/docs/)
+https://nightlies.apache.org/flink/flink-docs-release-1.20/docs/connectors/datastream/dynamic-kafka/
 ---
 
 ## Table of Contents
@@ -28,6 +28,8 @@ In these examples we are using the Flink version [1.20](https://nightlies.apache
     * [Data Sources](#data-sources)
     * [Processing Examples](#processing-examples)
 6. [Flink Operator Parallelism](docs/operator-parallelism/README.md)
+7. [DataStream API](#datastream-api)
+    * [Stream Data Transformations](docs/data-streams-api/DataStream-Transformations.md)
 
 ---
 
@@ -104,5 +106,17 @@ Various processing patterns using Flink:
 * **Stream Processing**: [Word Count (Streaming)](projects/flink-works-counter-stream-processing)
 * **Socket Streaming**: [Socket Word Count](projects/flink-works-counter-stream-socket-processing)
 * **Java 8 Lambdas**: [DataStream API with Java 8 Lambdas](projects/flink-data-stream-api-and-Java-8-Lambda-expression)
+* **Stream Data Transformations**: [DataStream API Transformations Examples](projects/flink-stream-data-transformations)
+    * [Basic Transformations](projects/flink-stream-data-transformations/src/main/java/io/github/jlmc/flink/transformations/BasicTransformationsExample.java) ([Test](projects/flink-stream-data-transformations/src/test/java/io/github/jlmc/flink/transformations/BasicTransformationsExampleTest.java))
+    * [KeyedStream Transformations](projects/flink-stream-data-transformations/src/main/java/io/github/jlmc/flink/transformations/KeyedStreamTransformationsExample.java) ([Test](projects/flink-stream-data-transformations/src/test/java/io/github/jlmc/flink/transformations/KeyedStreamTransformationsExampleTest.java))
+    * [Multistream Transformations](projects/flink-stream-data-transformations/src/main/java/io/github/jlmc/flink/transformations/MultistreamTransformationsExample.java) ([Test](projects/flink-stream-data-transformations/src/test/java/io/github/jlmc/flink/transformations/MultistreamTransformationsExampleTest.java))
+    * [Distribution Transformations](projects/flink-stream-data-transformations/src/main/java/io/github/jlmc/flink/transformations/DistributionTransformationsExample.java) ([Test](projects/flink-stream-data-transformations/src/test/java/io/github/jlmc/flink/transformations/DistributionTransformationsExampleTest.java))
+    * [KeyedProcessFunction](projects/flink-stream-data-transformations/src/main/java/io/github/jlmc/flink/transformations/KeyedProcessFunctionExample.java) ([Test](projects/flink-stream-data-transformations/src/test/java/io/github/jlmc/flink/transformations/KeyedProcessFunctionExampleTest.java))
 
 ---
+
+---
+
+## DataStream API
+
+* [Stream Data Transformations](docs/data-streams-api/DataStream-Transformations.md) ([Portuguese Version](docs/data-streams-api/DataStream-Transformations_PT.md))

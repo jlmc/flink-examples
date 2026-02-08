@@ -23,5 +23,7 @@
         <module>projects/flink-data-stream-api-and-Java-8-Lambda-expression</module>
         <module>projects/flink-local-environment-for-develop</module>
         <module>projects/flink-data-sources</module>
+        <module>projects/flink-stream-data-transformations</module>
+
     </modules>
 </project>

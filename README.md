@@ -106,6 +106,7 @@ Various processing patterns using Flink:
 * **Stream Processing**: [Word Count (Streaming)](projects/flink-works-counter-stream-processing)
 * **Socket Streaming**: [Socket Word Count](projects/flink-works-counter-stream-socket-processing)
 * **Java 8 Lambdas**: [DataStream API with Java 8 Lambdas](projects/flink-data-stream-api-and-Java-8-Lambda-expression)
+* **Stream Data Transformations**: [DataStream API Transformations Examples](projects/flink-stream-data-transformations)
 
 ---
 

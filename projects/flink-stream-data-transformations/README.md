@@ -36,3 +36,15 @@ To build the project:
 ```bash
 mvn clean package -pl projects/flink-stream-data-transformations
 ```
+
+## Running Tests
+
+This project includes test cases that use Flink's `MiniCluster` to demonstrate and verify the output of each transformation.
+
+To run all tests:
+
+```bash
+mvn test -pl projects/flink-stream-data-transformations
+```
+
+The tests use a `CollectSink` to capture the output of the streams and verify them using `AssertJ` and `JUnit 5`.

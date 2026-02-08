@@ -1,29 +1,23 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>io.github.jlmc</groupId>
-    <artifactId>collections-source-connectors</artifactId>
-    <version>1.0-SNAPSHOT</version>
 
-    <!--
     <parent>
         <groupId>io.github.jlmc</groupId>
         <artifactId>flink-data-sources</artifactId>
         <version>1.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
-    -->
+
+    <artifactId>collections-source-connectors</artifactId>
 
     <properties>
-        <!-- Use a stable, recent Flink version -->
-        <!--<flink.version>1.19.1</flink.version>-->
-        <flink.version>1.20.3</flink.version>
         <java.version>17</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <maven.compiler.release>${java.version}</maven.compiler.release>
         <log4j-slf4j-impl.version>2.23.1</log4j-slf4j-impl.version>
-        <junit-jupiter.version>5.13.3</junit-jupiter.version>
     </properties>
 
     <dependencyManagement>

@@ -13,6 +13,11 @@ import java.util.List;
 public class CollectSink<T> implements SinkFunction<T> {
     public static final List<Object> VALUES = Collections.synchronizedList(new ArrayList<>());
 
+    @SuppressWarnings("unchecked")
+    public static <T> List<T> values() {
+        return (List<T>) VALUES;
+    }
+
     @Override
     public void invoke(T value, Context context) {
         VALUES.add(value);

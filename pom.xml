@@ -27,5 +27,6 @@
         <module>flink-local-environment-for-develop</module>
         <module>flink-data-sources</module>
         <module>flink-stream-data-transformations</module>
+        <module>flink-stream-multistream-transformations</module>
     </modules>
 </project>

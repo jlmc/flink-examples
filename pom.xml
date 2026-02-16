@@ -19,14 +19,13 @@
     </properties>
 
     <modules>
-        <module>projects/flink-hello-world</module>
-        <module>projects/flink-works-counter-batch-processing</module>
-        <module>projects/flink-works-counter-stream-processing</module>
-        <module>projects/flink-works-counter-stream-socket-processing</module>
-        <module>projects/flink-data-stream-api-and-Java-8-Lambda-expression</module>
-        <module>projects/flink-local-environment-for-develop</module>
-        <module>projects/flink-data-sources</module>
-        <module>projects/flink-stream-data-transformations</module>
-
+        <module>flink-hello-world</module>
+        <module>flink-works-counter-batch-processing</module>
+        <module>flink-works-counter-stream-processing</module>
+        <module>flink-works-counter-stream-socket-processing</module>
+        <module>flink-data-stream-api-and-Java-8-Lambda-expression</module>
+        <module>flink-local-environment-for-develop</module>
+        <module>flink-data-sources</module>
+        <module>flink-stream-data-transformations</module>
     </modules>
 </project>

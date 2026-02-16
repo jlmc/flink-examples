@@ -71,7 +71,7 @@ https://nightlies.apache.org/flink/flink-docs-release-1.20/docs/connectors/datas
 
 ### Flink Local Environment for Development
 
-* [Flink Local Environment for Development](projects/flink-local-environment-for-develop)
+* [Flink Local Environment for Development](flink-local-environment-for-develop)
 
 This setup allows you to run Flink locally with:
 
@@ -88,12 +88,12 @@ This setup allows you to run Flink locally with:
 
 Examples of how to connect Flink to different data sources:
 
-* **Collections and Sequences**: [From Collection, Elements, Sequence and Source](projects/flink-data-sources/collections-source-connectors) ([Documentation](docs/data-streams-api/README.md))
-* **Kafka**: [Kafka Source Connector](projects/flink-data-sources/data-source-kafka-connector)
-* **Kafka JSON**: [Kafka JSON Source Consumer](projects/flink-data-sources/kafka-source-json-consumer)
-* **Kafka Key-Value**: [Kafka Key-Value Source Consumer](projects/flink-data-sources/kafka-source-key-value-consumer)
-* **MongoDB**: [MongoDB Source Connector](projects/flink-data-sources/data-source-mongodb)
-* **Custom Rich Source**: [Custom Rich Source Connectors](projects/flink-data-sources/custom-rich-source-connectors)
+* **Collections and Sequences**: [From Collection, Elements, Sequence and Source](flink-data-sources/collections-source-connectors) ([Documentation](docs/data-streams-api/README.md))
+* **Kafka**: [Kafka Source Connector](flink-data-sources/data-source-kafka-connector)
+* **Kafka JSON**: [Kafka JSON Source Consumer](flink-data-sources/kafka-source-json-consumer)
+* **Kafka Key-Value**: [Kafka Key-Value Source Consumer](flink-data-sources/kafka-source-key-value-consumer)
+* **MongoDB**: [MongoDB Source Connector](flink-data-sources/data-source-mongodb)
+* **Custom Rich Source**: [Custom Rich Source Connectors](flink-data-sources/custom-rich-source-connectors)
 
 ---
 
@@ -101,17 +101,17 @@ Examples of how to connect Flink to different data sources:
 
 Various processing patterns using Flink:
 
-* **Hello World**: [Simple Flink Application](projects/flink-hello-world)
-* **Batch Processing**: [Word Count (Batch)](projects/flink-works-counter-batch-processing)
-* **Stream Processing**: [Word Count (Streaming)](projects/flink-works-counter-stream-processing)
-* **Socket Streaming**: [Socket Word Count](projects/flink-works-counter-stream-socket-processing)
-* **Java 8 Lambdas**: [DataStream API with Java 8 Lambdas](projects/flink-data-stream-api-and-Java-8-Lambda-expression)
-* **Stream Data Transformations**: [DataStream API Transformations Examples](projects/flink-stream-data-transformations)
-    * [Basic Transformations](projects/flink-stream-data-transformations/src/main/java/io/github/jlmc/flink/transformations/BasicTransformationsExample.java) ([Test](projects/flink-stream-data-transformations/src/test/java/io/github/jlmc/flink/transformations/BasicTransformationsExampleTest.java))
-    * [KeyedStream Transformations](projects/flink-stream-data-transformations/src/main/java/io/github/jlmc/flink/transformations/KeyedStreamTransformationsExample.java) ([Test](projects/flink-stream-data-transformations/src/test/java/io/github/jlmc/flink/transformations/KeyedStreamTransformationsExampleTest.java))
-    * [Multistream Transformations](projects/flink-stream-data-transformations/src/main/java/io/github/jlmc/flink/transformations/MultistreamTransformationsExample.java) ([Test](projects/flink-stream-data-transformations/src/test/java/io/github/jlmc/flink/transformations/MultistreamTransformationsExampleTest.java))
-    * [Distribution Transformations](projects/flink-stream-data-transformations/src/main/java/io/github/jlmc/flink/transformations/DistributionTransformationsExample.java) ([Test](projects/flink-stream-data-transformations/src/test/java/io/github/jlmc/flink/transformations/DistributionTransformationsExampleTest.java))
-    * [KeyedProcessFunction](projects/flink-stream-data-transformations/src/main/java/io/github/jlmc/flink/transformations/KeyedProcessFunctionExample.java) ([Test](projects/flink-stream-data-transformations/src/test/java/io/github/jlmc/flink/transformations/KeyedProcessFunctionExampleTest.java))
+* **Hello World**: [Simple Flink Application](flink-hello-world)
+* **Batch Processing**: [Word Count (Batch)](flink-works-counter-batch-processing)
+* **Stream Processing**: [Word Count (Streaming)](flink-works-counter-stream-processing)
+* **Socket Streaming**: [Socket Word Count](flink-works-counter-stream-socket-processing)
+* **Java 8 Lambdas**: [DataStream API with Java 8 Lambdas](flink-data-stream-api-and-Java-8-Lambda-expression)
+* **Stream Data Transformations**: [DataStream API Transformations Examples](flink-stream-data-transformations)
+    * [Basic Transformations](flink-stream-data-transformations/src/main/java/io/github/jlmc/flink/transformations/BasicTransformationsExample.java) ([Test](flink-stream-data-transformations/src/test/java/io/github/jlmc/flink/transformations/BasicTransformationsExampleTest.java))
+    * [KeyedStream Transformations](flink-stream-data-transformations/src/main/java/io/github/jlmc/flink/transformations/KeyedStreamTransformationsExample.java) ([Test](flink-stream-data-transformations/src/test/java/io/github/jlmc/flink/transformations/KeyedStreamTransformationsExampleTest.java))
+    * [Multistream Transformations](flink-stream-data-transformations/src/main/java/io/github/jlmc/flink/transformations/MultistreamTransformationsExample.java) ([Test](flink-stream-data-transformations/src/test/java/io/github/jlmc/flink/transformations/MultistreamTransformationsExampleTest.java))
+    * [Distribution Transformations](flink-stream-data-transformations/src/main/java/io/github/jlmc/flink/transformations/DistributionTransformationsExample.java) ([Test](flink-stream-data-transformations/src/test/java/io/github/jlmc/flink/transformations/DistributionTransformationsExampleTest.java))
+    * [KeyedProcessFunction](flink-stream-data-transformations/src/main/java/io/github/jlmc/flink/transformations/KeyedProcessFunctionExample.java) ([Test](flink-stream-data-transformations/src/test/java/io/github/jlmc/flink/transformations/KeyedProcessFunctionExampleTest.java))
 
 ---
 

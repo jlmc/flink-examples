@@ -10,7 +10,7 @@
         <artifactId>flink-examples</artifactId>
         <version>1.0-SNAPSHOT</version>
         <!-- Point to the root parent POM at repository root -->
-        <relativePath>../../pom.xml</relativePath>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>flink-data-sources</artifactId>

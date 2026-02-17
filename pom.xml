@@ -28,5 +28,6 @@
         <module>flink-data-sources</module>
         <module>flink-stream-data-transformations</module>
         <module>flink-stream-multistream-transformations</module>
+        <module>flink-stream-side-output</module>
     </modules>
 </project>

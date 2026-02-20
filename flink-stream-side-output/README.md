@@ -42,12 +42,12 @@ Unlike the main stream, Side Outputs can emit objects of entirely different clas
 
 ## 📊 Comparison: Standard Filter vs. Side Output
 
-| Feature | Multiple Filters (`.filter`) | Side Output (`ctx.output`) |
-| --- | --- | --- |
-| **Data Passes** | Multiple (one per filter) | **Single Pass** |
-| **Data Typing** | Same as original stream | **Can be completely different** |
-| **Complexity** | Simple, but inefficient | Requires a `ProcessFunction` |
-| **Performance** |  | **** |
+| Feature         | Multiple Filters (`.filter`) | Side Output (`ctx.output`)      |
+|-----------------|------------------------------|---------------------------------|
+| **Data Passes** | Multiple (one per filter)    | **Single Pass**                 |
+| **Data Typing** | Same as original stream      | **Can be completely different** |
+| **Complexity**  | Simple, but inefficient      | Requires a `ProcessFunction`    |
+| **Performance** |                              | ****                            |
 
 ---
 
@@ -87,6 +87,39 @@ DataStream<Output> mainStream = input.process(new MyProcessor());
 DataStream<String> sideStream = mainStream.getSideOutput(DLQ_TAG);
 
 ```
+
+---
+
+## 🧪 Testing with Kafka
+
+To test Flink jobs that interact with Kafka, this project provides a JUnit 5 extension that manages a `KafkaContainer` using Testcontainers.
+
+### 1. Using `@EnableKafka`
+
+The simplest way is to use the `@EnableKafka` meta-annotation on your test class:
+
+```java
+@EnableKafka
+class MyKafkaIT {
+    @Test
+    void testWithKafka() {
+        // Retrieve the bootstrap servers
+        String brokers = KafkaExtension.getBootstrapServers();
+        
+        // Alternatively, use the system property "brokers" which is automatically set
+        String brokersProp = System.getProperty("brokers");
+        
+        // Setup your Kafka producer/consumer and Flink job...
+    }
+}
+```
+
+### 2. Kafka Extension Details
+
+The `KafkaExtension` ensures that:
+- A single Kafka container is shared across all test classes in the same suite for performance.
+- The `brokers` system property is set before any test starts.
+- It includes automatic Docker socket detection for macOS users (supporting Docker Desktop and OrbStack).
 
 ---
 

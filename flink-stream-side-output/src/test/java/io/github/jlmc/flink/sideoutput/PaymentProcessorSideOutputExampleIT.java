@@ -50,6 +50,7 @@ public class PaymentProcessorSideOutputExampleIT {
     private static final String ERROR_TOPIC = "transactions-errors";
 
     static {
+        // this may be needed for MacOS users to ensure Testcontainers can find the Docker socket, especially if using Docker Desktop with a custom socket path.
         String os = System.getProperty("os.name").toLowerCase();
         if (os.contains("mac")) {
             String userHome = System.getProperty("user.home");

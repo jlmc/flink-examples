@@ -1,5 +1,6 @@
 package io.github.jlmc.flink.transformations;
 
+import io.github.jlmc.flink.testutils.CollectSink;
 import io.github.jlmc.flink.transformations.KeyedStreamTransformationsExample.WordEntry;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.runtime.testutils.MiniClusterResourceConfiguration;
@@ -26,7 +27,7 @@ public class KeyedStreamTransformationsExampleTest {
 
     @BeforeEach
     void setUp() {
-        CollectSink.VALUES.clear();
+        CollectSink.clear();
     }
 
     @Test
@@ -48,7 +49,7 @@ public class KeyedStreamTransformationsExampleTest {
 
         // The sink will collect all intermediate results because it's a stream
         // apple:1, apple:2, banana:1
-        List<String> results = CollectSink.VALUES.stream()
+        List<String> results = CollectSink.values().stream()
                 .map(Object::toString)
                 .collect(Collectors.toList());
 
@@ -75,7 +76,7 @@ public class KeyedStreamTransformationsExampleTest {
 
         env.execute();
 
-        List<String> results = CollectSink.VALUES.stream()
+        List<String> results = CollectSink.values().stream()
                 .map(Object::toString)
                 .collect(Collectors.toList());
 

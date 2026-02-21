@@ -1,5 +1,6 @@
 package io.github.jlmc.flink.transformations;
 
+import io.github.jlmc.flink.testutils.CollectSink;
 import io.github.jlmc.flink.transformations.KeyedProcessFunctionExample.SensorReading;
 import org.apache.flink.runtime.testutils.MiniClusterResourceConfiguration;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -20,7 +21,7 @@ public class KeyedProcessFunctionExampleTest {
 
     @BeforeEach
     void setUp() {
-        CollectSink.VALUES.clear();
+        CollectSink.clear();
     }
 
     @Test

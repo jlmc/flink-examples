@@ -1,5 +1,6 @@
 package io.github.jlmc.flink.sideoutput;
 
+import io.github.jlmc.flink.testutils.CollectSink;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.test.util.AbstractTestBase;
@@ -12,7 +13,7 @@ public class PaymentProcessorSideOutputExampleTest extends AbstractTestBase {
 
     @BeforeEach
     void setUp() {
-        CollectSink.VALUES.clear();
+        CollectSink.clear();
     }
 
     @Test
@@ -28,7 +29,7 @@ public class PaymentProcessorSideOutputExampleTest extends AbstractTestBase {
 
         env.execute();
 
-        assertThat(CollectSink.VALUES).containsExactlyInAnyOrder(
+        assertThat(CollectSink.values()).containsExactlyInAnyOrder(
                 "VALID_TRANSACTION: 100.5",
                 "VALID_TRANSACTION: 200.0"
         );
@@ -47,7 +48,7 @@ public class PaymentProcessorSideOutputExampleTest extends AbstractTestBase {
 
         env.execute();
 
-        assertThat(CollectSink.VALUES).containsExactlyInAnyOrder(
+        assertThat(CollectSink.values()).containsExactlyInAnyOrder(
                 "BUSINESS_EXCEPTION: Invalid amount (-5.0)",
                 "BUSINESS_EXCEPTION: Invalid amount (0.0)"
         );
@@ -66,7 +67,7 @@ public class PaymentProcessorSideOutputExampleTest extends AbstractTestBase {
 
         env.execute();
 
-        assertThat(CollectSink.VALUES).containsExactlyInAnyOrder(
+        assertThat(CollectSink.values()).containsExactlyInAnyOrder(
                 "TECHNICAL_EXCEPTION: Non-numeric data (corrupted_json)"
         );
     }

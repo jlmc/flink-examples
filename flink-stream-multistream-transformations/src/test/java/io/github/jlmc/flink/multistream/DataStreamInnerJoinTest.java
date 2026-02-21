@@ -1,5 +1,6 @@
 package io.github.jlmc.flink.multistream;
 
+import io.github.jlmc.flink.testutils.CollectSink;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.test.util.AbstractTestBase;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,7 +15,7 @@ class DataStreamInnerJoinTest extends AbstractTestBase {
 
     @BeforeEach
     void setUp() {
-        CollectSink.values.clear();
+        CollectSink.clear();
     }
 
     @Test
@@ -96,8 +97,7 @@ class DataStreamInnerJoinTest extends AbstractTestBase {
     }
 
     private List<DataStreamInnerJoin.EnrichedUser> getResults() {
-        return CollectSink.values.stream()
-                .map(it -> (DataStreamInnerJoin.EnrichedUser) it)
+        return CollectSink.<DataStreamInnerJoin.EnrichedUser>values().stream()
                 .toList();
     }
 }

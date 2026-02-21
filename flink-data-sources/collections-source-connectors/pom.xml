@@ -119,6 +119,13 @@
             <scope>test</scope>
         </dependency>
 
+        <dependency>
+            <groupId>io.github.jlmc</groupId>
+            <artifactId>flink-test-utils</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+
         <!--
         <dependency>
             <groupId>org.apache.flink</groupId>

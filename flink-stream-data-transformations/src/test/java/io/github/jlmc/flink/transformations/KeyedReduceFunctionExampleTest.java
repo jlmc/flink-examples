@@ -1,5 +1,6 @@
 package io.github.jlmc.flink.transformations;
 
+import io.github.jlmc.flink.testutils.CollectSink;
 import io.github.jlmc.flink.transformations.KeyedReduceFunctionExample.Transaction;
 import io.github.jlmc.flink.transformations.KeyedReduceFunctionExample.TransactionSource;
 import org.apache.flink.runtime.testutils.MiniClusterResourceConfiguration;
@@ -25,7 +26,7 @@ public class KeyedReduceFunctionExampleTest {
 
     @BeforeEach
     void setUp() {
-        CollectSink.VALUES.clear();
+        CollectSink.clear();
     }
 
     @Test

@@ -1,5 +1,6 @@
 package io.github.jlmc.flink.multistream;
 
+import io.github.jlmc.flink.testutils.CollectSink;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.test.util.AbstractTestBase;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,7 +14,7 @@ class FraudDetectorCoFlatMapFunctionTest extends AbstractTestBase {
 
     @BeforeEach
     void setUp() {
-        CollectSink.values.clear();
+        CollectSink.clear();
     }
 
     @Test
@@ -46,8 +47,7 @@ class FraudDetectorCoFlatMapFunctionTest extends AbstractTestBase {
         // rules might be processed before transactions if they are small.
         // But to be sure, we should check if any alerts were generated.
         
-        List<FraudDetectorCoFlatMapFunction.Alert> alerts = CollectSink.values.stream()
-                .map(it -> (FraudDetectorCoFlatMapFunction.Alert) it)
+        List<FraudDetectorCoFlatMapFunction.Alert> alerts = CollectSink.<FraudDetectorCoFlatMapFunction.Alert>values().stream()
                 .toList();
 
         // In this simple test, we expect at least the alert for user_A 5000 if the rule was processed first.

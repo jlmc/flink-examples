@@ -85,6 +85,13 @@
             <scope>provided</scope>
         </dependency>
 
+        <dependency>
+            <groupId>io.github.jlmc</groupId>
+            <artifactId>flink-test-utils</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+
         <!-- Logging (slf4j) -->
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>

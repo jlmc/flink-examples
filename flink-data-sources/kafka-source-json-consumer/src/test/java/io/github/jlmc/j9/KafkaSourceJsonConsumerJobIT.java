@@ -1,5 +1,6 @@
 package io.github.jlmc.j9;
 
+import io.github.jlmc.flink.testutils.CollectSink;
 import io.github.jlmc.j9.model.PersonLocationEvent;
 import org.apache.flink.api.common.RuntimeExecutionMode;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
@@ -91,27 +92,18 @@ public class KafkaSourceJsonConsumerJobIT {
         env.setRuntimeMode(RuntimeExecutionMode.STREAMING);
         env.setParallelism(1);
 
-        CollectSink.VALUES.clear();
+        CollectSink.clear();
 
         KafkaSourceJsonConsumerJob.createJob(env, KAFKA.getBootstrapServers())
-                                  .addSink(new CollectSink());
+                                  .addSink(new CollectSink<>());
 
         env.executeAsync("IT Job");
 
         // Verify the results
         await().atMost(Duration.ofSeconds(30))
                .untilAsserted(() -> {
-                   assertEquals(1, CollectSink.VALUES.size());
-                   assertEquals(personId, CollectSink.VALUES.get(0).personId());
+                   assertEquals(1, CollectSink.values().size());
+                   assertEquals(personId, ((PersonLocationEvent) CollectSink.values().get(0)).personId());
                });
-    }
-
-    private static class CollectSink implements SinkFunction<PersonLocationEvent> {
-        static final List<PersonLocationEvent> VALUES = Collections.synchronizedList(new ArrayList<>());
-
-        @Override
-        public void invoke(PersonLocationEvent value, Context context) {
-            VALUES.add(value);
-        }
     }
 }

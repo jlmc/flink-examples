@@ -11,7 +11,6 @@ import java.util.Set;
 public class UsingRichFilterFunctionExample {
 
     public static void main(String[] args) throws Exception {
-
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setParallelism(2);
 
@@ -22,16 +21,24 @@ public class UsingRichFilterFunctionExample {
                 "Superman", "Batman", "WonderWoman", "Flash", "Aquaman", "Cyborg", "GreenLantern", "Shazam", "Supergirl", "Nightwing"
         );
 
-
-        DataStream<String> marvelOnly = input.filter(new MarvelRichFilter());
-
-        // 4. Print result
-        marvelOnly.print();
+        createPipeline(input).print();
 
         env.execute("Flink RichFilterFunction Lifecycle Example");
     }
 
-    static class MarvelRichFilter extends RichFilterFunction<String> {
+    /**
+     * Creates the Flink pipeline.
+     * @param input the input data stream
+     * @return the transformed data stream
+     */
+    public static DataStream<String> createPipeline(DataStream<String> input) {
+        return input.filter(new MarvelRichFilter());
+    }
+
+    /**
+     * A rich filter function that filters for Marvel heroes.
+     */
+    public static class MarvelRichFilter extends RichFilterFunction<String> {
 
         private transient Set<String> marvelHeroes;
 

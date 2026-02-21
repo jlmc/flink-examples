@@ -1,5 +1,6 @@
 package io.github.jlmc.flink.transformations;
 
+import io.github.jlmc.flink.testutils.CollectSink;
 import org.apache.flink.runtime.testutils.MiniClusterResourceConfiguration;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
@@ -23,7 +24,7 @@ public class MultistreamTransformationsExampleTest {
 
     @BeforeEach
     void setUp() {
-        CollectSink.VALUES.clear();
+        CollectSink.clear();
     }
 
     @Test
@@ -39,7 +40,7 @@ public class MultistreamTransformationsExampleTest {
 
         env.execute();
 
-        assertThat(CollectSink.VALUES).containsExactlyInAnyOrder("A", "B");
+        assertThat(CollectSink.values()).containsExactlyInAnyOrder("A", "B");
     }
 
     @Test
@@ -59,7 +60,7 @@ public class MultistreamTransformationsExampleTest {
         // Since it's broadcast and we only have one data element,
         // it might be processed before or after the control element reaches the instance.
         // But usually, in a MiniCluster with small data, it's deterministic enough or we check for both.
-        assertThat(CollectSink.VALUES.stream().map(Object::toString).collect(Collectors.toList()))
+        assertThat(CollectSink.<String>values().stream().map(Object::toString).collect(Collectors.toList()))
                 .anySatisfy(s -> assertThat(s).contains("user_1"));
     }
 

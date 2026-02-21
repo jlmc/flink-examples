@@ -1,5 +1,6 @@
 package io.github.jlmc.flink.multistream;
 
+import io.github.jlmc.flink.testutils.CollectSink;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.test.util.AbstractTestBase;
@@ -14,7 +15,7 @@ public class CurrencyConverterCoMapFunctionTest extends AbstractTestBase {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setParallelism(1);
 
-        CollectSink.values.clear();
+        CollectSink.clear();
 
         // 1. Prepare test data
         DataStream<CurrencyConverterCoMapFunction.SaleInUSD> salesDs = env.fromElements(
@@ -41,11 +42,10 @@ public class CurrencyConverterCoMapFunctionTest extends AbstractTestBase {
         // If it arrives BEFORE, they will use 0.85.
         // In a MiniCluster with env.fromElements, there's no strict guarantee of timing unless we control it.
         
-        assertThat(CollectSink.values).hasSize(3);
+        assertThat(CollectSink.values()).hasSize(3);
         
         // We check if the conversion was done with either 1.0 or 0.85
-        for (Object obj : CollectSink.values) {
-            CurrencyConverterCoMapFunction.SaleInEUR sale = (CurrencyConverterCoMapFunction.SaleInEUR) obj;
+        for (CurrencyConverterCoMapFunction.SaleInEUR sale : CollectSink.<CurrencyConverterCoMapFunction.SaleInEUR>values()) {
             if (sale.item().equals("laptop")) {
                 assertThat(sale.price()).isIn(1000.0, 850.0);
             } else if (sale.item().equals("mouse")) {

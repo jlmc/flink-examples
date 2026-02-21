@@ -1,5 +1,6 @@
 package io.github.jlmc.flink.multistream;
 
+import io.github.jlmc.flink.testutils.CollectSink;
 import org.apache.flink.streaming.api.datastream.ConnectedStreams;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
@@ -16,7 +17,7 @@ public class ConnectMultipleDataStreamsToOneDataStreamExampleTest extends Abstra
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setParallelism(1);
 
-        CollectSink.values.clear();
+        CollectSink.clear();
 
         DataStream<Integer> controlStream = env.fromElements(1, 0);
         DataStream<String> dataStream = env.fromElements("apple", "banana");
@@ -39,7 +40,7 @@ public class ConnectMultipleDataStreamsToOneDataStreamExampleTest extends Abstra
 
         env.execute();
 
-        assertThat(CollectSink.values).containsExactlyInAnyOrder(
+        assertThat(CollectSink.values()).containsExactlyInAnyOrder(
                 "Control: 1",
                 "Control: 0",
                 "Data: apple",

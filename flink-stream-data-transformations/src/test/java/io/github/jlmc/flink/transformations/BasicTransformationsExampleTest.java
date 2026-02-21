@@ -1,5 +1,6 @@
 package io.github.jlmc.flink.transformations;
 
+import io.github.jlmc.flink.testutils.CollectSink;
 import org.apache.flink.api.common.typeinfo.Types;
 import org.apache.flink.runtime.testutils.MiniClusterResourceConfiguration;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -22,7 +23,7 @@ public class BasicTransformationsExampleTest {
 
     @BeforeEach
     void setUp() {
-        CollectSink.VALUES.clear();
+        CollectSink.clear();
     }
 
     @Test
@@ -38,7 +39,7 @@ public class BasicTransformationsExampleTest {
 
         env.execute();
 
-        assertThat(CollectSink.VALUES).containsExactlyInAnyOrder("FLINK", "STREAM");
+        assertThat(CollectSink.values()).containsExactlyInAnyOrder("FLINK", "STREAM");
     }
 
     @Test
@@ -53,7 +54,7 @@ public class BasicTransformationsExampleTest {
 
         env.execute();
 
-        assertThat(CollectSink.VALUES).containsExactly("flink");
+        assertThat(CollectSink.values()).containsExactly("flink");
     }
 
     @Test
@@ -72,7 +73,7 @@ public class BasicTransformationsExampleTest {
 
         env.execute();
 
-        assertThat(CollectSink.VALUES).containsExactlyInAnyOrder("a", "b", "c");
+        assertThat(CollectSink.values()).containsExactlyInAnyOrder("a", "b", "c");
     }
 
     @Test
@@ -99,6 +100,6 @@ public class BasicTransformationsExampleTest {
 
         env.execute();
 
-        assertThat(CollectSink.VALUES).containsExactlyInAnyOrder("WHITE", "black", "black", "WHITE", "black", "black", "WHITE");
+        assertThat(CollectSink.values()).containsExactlyInAnyOrder("WHITE", "black", "black", "WHITE", "black", "black", "WHITE");
     }
 }

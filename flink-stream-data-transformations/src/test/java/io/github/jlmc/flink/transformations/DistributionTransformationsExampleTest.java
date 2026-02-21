@@ -1,5 +1,6 @@
 package io.github.jlmc.flink.transformations;
 
+import io.github.jlmc.flink.testutils.CollectSink;
 import org.apache.flink.runtime.testutils.MiniClusterResourceConfiguration;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
@@ -24,7 +25,7 @@ public class DistributionTransformationsExampleTest {
 
     @BeforeEach
     void setUp() {
-        CollectSink.VALUES.clear();
+        CollectSink.clear();
     }
 
     @Test
@@ -40,10 +41,10 @@ public class DistributionTransformationsExampleTest {
 
         env.execute();
 
-        assertThat(CollectSink.VALUES).hasSize(100);
+        assertThat(CollectSink.values()).hasSize(100);
         
         // Since it's rebalanced, all values should be present
-        Set<Object> results = new HashSet<>(CollectSink.VALUES);
+        Set<Object> results = new HashSet<>(CollectSink.values());
         assertThat(results).hasSize(100);
     }
 }

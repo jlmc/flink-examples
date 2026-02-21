@@ -1,5 +1,6 @@
 package io.github.jlmc.flink.multistream;
 
+import io.github.jlmc.flink.testutils.CollectSink;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.test.util.AbstractTestBase;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,7 +14,7 @@ class RealTimeInventoryManagerCoProcessFunctionTest extends AbstractTestBase {
 
     @BeforeEach
     void setUp() {
-        CollectSink.values.clear();
+        CollectSink.clear();
     }
 
     @Test
@@ -113,10 +114,8 @@ class RealTimeInventoryManagerCoProcessFunctionTest extends AbstractTestBase {
         }
     }
 
-    @SuppressWarnings("unchecked")
     private List<RealTimeInventoryManagerCoProcessFunction.InventoryAlert> getAlerts() {
-        return CollectSink.values.stream()
-                .map(it -> (RealTimeInventoryManagerCoProcessFunction.InventoryAlert) it)
+        return CollectSink.<RealTimeInventoryManagerCoProcessFunction.InventoryAlert>values().stream()
                 .toList();
     }
 }

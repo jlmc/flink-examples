@@ -1,5 +1,6 @@
 package io.github.jlmc.flink.multistream;
 
+import io.github.jlmc.flink.testutils.CollectSink;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.test.util.AbstractTestBase;
@@ -14,7 +15,7 @@ public class DataStreamConnectorForFireAlertingTest extends AbstractTestBase {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setParallelism(1);
 
-        CollectSink.values.clear();
+        CollectSink.clear();
 
         // 1. Prepare test data
         // Temperature > 50.0 should trigger alert
@@ -37,14 +38,14 @@ public class DataStreamConnectorForFireAlertingTest extends AbstractTestBase {
         // - Temperature 55.0
         // - Smoke HIGH
         // - Smoke MEDIUM
-        assertThat(CollectSink.values).hasSize(3);
+        assertThat(CollectSink.values()).hasSize(3);
         
-        assertThat(CollectSink.values)
+        assertThat(CollectSink.values())
                 .filteredOn(o -> ((ForestMonitorData) o).type().equals(ForestMonitorData.TYPE_TEMPERATURE))
                 .extracting(o -> ((ForestMonitorData) o).temperature())
                 .containsExactlyInAnyOrder(55.0);
 
-        assertThat(CollectSink.values)
+        assertThat(CollectSink.values())
                 .filteredOn(o -> ((ForestMonitorData) o).type().equals(ForestMonitorData.TYPE_SMOKE))
                 .extracting(o -> ((ForestMonitorData) o).smoke())
                 .containsExactlyInAnyOrder("HIGH", "MEDIUM");

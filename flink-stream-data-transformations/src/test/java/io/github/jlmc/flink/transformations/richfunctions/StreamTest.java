@@ -75,7 +75,7 @@ public class StreamTest {
                     {
                         put("black", 2L);
                         put("man", 2L);
-                        put("america", 2L);
+                        put("america", 1L);
                         put("captain", 1L);
                         put("doctor", 1L);
                         put("hulk", 1L);
@@ -178,7 +178,12 @@ public class StreamTest {
                         )
                 );
 
-        System.out.println(collected);
-        Assertions.assertEquals(collected.keySet(), expected.keySet());
+        Assertions.assertEquals(expected, collected);
+        // Assert order explicitly
+        expected.forEach((universe, expectedMap) -> {
+            Map<String, Long> actualMap = collected.get(universe);
+            Assertions.assertEquals(expectedMap.keySet(), actualMap.keySet(), "Keys order for universe " + universe + " must match");
+            Assertions.assertIterableEquals(expectedMap.entrySet(), actualMap.entrySet(), "Entries order for universe " + universe + " must match");
+        });
     }
 }

@@ -29,5 +29,6 @@
         <module>flink-stream-data-transformations</module>
         <module>flink-stream-multistream-transformations</module>
         <module>flink-stream-side-output</module>
+        <module>flink-test-utils</module>
     </modules>
 </project>

@@ -18,6 +18,8 @@ source.map(value -> value.toUpperCase())
       .print();
 ```
 
+Check out the full example in `ForwardPartitionerExample.java`.
+
 
 
 ## 2. Shuffle Partitioner (shuffle)
@@ -82,6 +84,8 @@ DataStream<Result> balancedStream = skewedLogs
 
 ```
 
+Check out the full example in `RebalancePartitionerExample.java`.
+
 **Line-by-Line:**
 
 * **Line 2:** The source might be sending 90% of data to one worker because of how Kafka keys were set.
@@ -116,6 +120,8 @@ DataStream<Transaction> alerts = transactions
 
 ```
 
+Check out the full example in `BroadcastPartitionerExample.java`.
+
 **Line-by-Line:**
 
 * **Line 5:** We read a configuration stream that might only have one message per hour.
@@ -132,3 +138,94 @@ DataStream<Transaction> alerts = transactions
 | **Main Goal**    | Performance & Load Balancing | Consistency & Shared Logic       |
 | **Network Cost** | Medium (moves data once)     | Very High (multiplies data by N) |
 | **Typical Data** | Heavy raw events             | Small config/rule sets           |
+
+
+---
+
+The **Global Partitioner** is the most "centralizing" distribution algorithm in Apache Flink. While other algorithms focus on spreading the workload across multiple instances, the Global partitioner does the exact opposite.
+
+Here is everything you need to know about it:
+
+---
+
+## 1. What is the Global Partitioner?
+
+The **Global Partitioner** sends **all elements** from the upstream source to a **single, specific instance** of the downstream operator (specifically, the instance with index 0).
+
+* **Strategy:** N-to-1 (Many-to-One).
+* **Destination Parallelism:** Even if the downstream operator has a parallelism of 100, only **one** subtask will receive data. The other 99 will remain idle.
+
+---
+
+## 2. Technical Behavior
+
+* **Routing:** It ignores any previous partitioning (like keys or round-robin) and forces all network traffic to a single point.
+* **Network Cost:** This can be high because data from every TaskManager in the cluster must travel over the network to one central node.
+* **Bottleneck Risk:** This is the primary danger. Since only one instance processes everything, it becomes a performance bottleneck. If the data volume is too high, this single subtask will lag, causing backpressure across the entire job.
+
+---
+
+## 3. Real-World Use Cases
+
+You should only use `.global()` when your business logic requires a **total, singular view** of every single record in the stream.
+
+### A. Global Sorting
+
+If you need to sort every record in the stream by a timestamp, you cannot do this in parallel because each machine would only see a fraction of the data. You must bring all data to one place.
+
+```java
+// Force all events to one machine to perform a final sort
+stream.global()
+      .process(new GlobalSortFunction()); 
+
+```
+
+### B. Single File Output
+
+If your requirement is to generate a single final report file (CSV or TXT) instead of multiple part-files distributed across HDFS or S3.
+
+```java
+stream.global()
+      .writeAsText("s3://my-bucket/reports/final_single_report.txt");
+
+```
+
+---
+
+## 4. Code Example (Flink 1.20)
+
+Here is how it looks in a pipeline, with a line-by-line explanation:
+
+```java
+DataStream<Integer> numbers = env.fromElements(1, 2, 3, 4, 5, 6)
+    .setParallelism(3); // Source spread across 3 workers
+
+// 1. Applying the Global Partitioner
+DataStream<Integer> globalStream = numbers.global();
+
+// 2. Downstream operator
+globalStream.map(value -> "Processed centrally: " + value)
+    .setParallelism(4) // Even with 4 requested, only subtask 0 is used
+    .print();
+
+```
+
+Check out the full example in `GlobalPartitionerExample.java`.
+
+**Line-by-Line Explanation:**
+
+1. **`.setParallelism(3)`**: We start with data distributed across 3 instances for speed.
+2. **`.global()`**: Flink creates a "funnel." All data leaving those 3 workers is serialized and sent to worker "zero" of the next stage.
+3. **`.setParallelism(4)`**: This is the crucial detail. Even though you asked Flink to use 4 instances for the `map`, the `global()` partitioner forces the use of only **one**. Flink will technically deploy 4 instances, but 3 of them will receive 0 records.
+
+---
+
+## 5. Comparison: Global vs. Others
+
+| Algorithm     | Distribution            | Primary Use                            |
+|---------------|-------------------------|----------------------------------------|
+| **Global**    | All to Subtask 0        | Global sorting, single-file sinks.     |
+| **Broadcast** | All to **All** Subtasks | Sending rules/configs to every worker. |
+| **Rebalance** | Round-Robin to All      | Load balancing to fix data skew.       |
+
+> **Performance Tip:** Never use `global()` for massive data volumes (e.g., Terabytes per hour). A single JVM cannot handle that throughput alone, leading to `OutOfMemory` errors or extreme latency.

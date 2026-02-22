@@ -83,7 +83,8 @@ public class ShufflePartitionerExample {
     public record Result(String original, String processed, int subtaskIndex) implements Serializable {
         @Override
         public String toString() {
-            return String.format("{\"original\": \"%s\", \"processed\": \"%s\", \"subtaskIndex\": %d}", original, processed, subtaskIndex);
+            return String.format("""
+                    {"original": "%s", "processed": "%s", "subtaskIndex": %d}""", original, processed, subtaskIndex);
         }
     }
 

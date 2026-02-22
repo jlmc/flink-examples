@@ -84,9 +84,6 @@ public class RebalancePartitionerExample {
 
     // Simple record type capturing original payload and processing subtask index
     public record LogEvent(String level, String message, int subtaskIndex) implements Serializable { // Java 17 record with Serializable
-        @Override public String toString() { // JSON-ish string for easy parsing in tests
-            return String.format("{\"level\": \"%s\", \"message\": \"%s\", \"subtaskIndex\": %d}", level, message, subtaskIndex);
-        }
     }
 
     // Generic Jackson Serialization Schema

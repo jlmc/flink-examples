@@ -87,12 +87,18 @@ public class BroadcastPartitionerExampleIT {
         producerProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
 
         try (KafkaProducer<String, String> producer = new KafkaProducer<>(producerProps)) {
-            // First, send a rule so every subtask will have it before data arrives (best-effort in test)
-            producer.send(new ProducerRecord<>(CONFIG_TOPIC, "{\"type\": \"FRAUD\", \"threshold\": 50.0}"));
+            // First, send rules so every subtask will have them before data arrives
+            producer.send(new ProducerRecord<>(CONFIG_TOPIC, "rule-1", """
+                    {"id": "rule-1", "type": "FRAUD", "threshold": 50.0}"""));
+            producer.send(new ProducerRecord<>(CONFIG_TOPIC, "rule-2", """
+                    {"id": "rule-2", "type": "FRAUD", "threshold": 200.0}"""));
 
             // Now send some transactions
             for (int i = 0; i < 40; i++) {
-                producer.send(new ProducerRecord<>(DATA_TOPIC, String.format("{\"id\": \"txn-%d\", \"amount\": %.2f}", i, 100.0 + i)));
+                double amount = 100.0 + i;
+                producer.send(new ProducerRecord<>(DATA_TOPIC, "txn-" + i,
+                        String.format("""
+                                {"id": "txn-%d", "amount": %.2f}""", i, amount)));
             }
             producer.flush();
         }
@@ -117,13 +123,17 @@ public class BroadcastPartitionerExampleIT {
             consumer.subscribe(List.of(OUTPUT_TOPIC));
 
             List<String> messages = new ArrayList<>();
+            List<String> keys = new ArrayList<>();
             Set<Integer> subtaskIndices = new HashSet<>();
 
             await().atMost(Duration.ofSeconds(60)).untilAsserted(() -> {
                 consumer.poll(Duration.ofMillis(100)).forEach(record -> {
                     String value = record.value();
+                    String key = record.key();
                     messages.add(value);
-                    if (value.contains("\"threshold\":50.0")) { // Ensure broadcasted rule is applied
+                    keys.add(key);
+
+                    if (value.contains("\"threshold\":50.0") || value.contains("\"threshold\":200.0")) { // Ensure broadcasted rule is applied
                         // Extract subtaskIndex from JSON: ... "subtaskIndex":N}
                         int idxStart = value.lastIndexOf(":");
                         int idxEnd = value.lastIndexOf("}");
@@ -134,8 +144,10 @@ public class BroadcastPartitionerExampleIT {
                     }
                 });
 
-                assertTrue(messages.size() >= 10, "Expected at least 10 alerts for data. Received: " + messages.size());
+                assertTrue(messages.size() >= 10, "Expected at least 10 alerts. Received: " + messages.size());
+                assertTrue(keys.stream().allMatch(k -> k != null && k.contains("txn-") && k.contains("rule-")), "Alert keys should be conjunction of txnId and ruleId");
                 assertTrue(subtaskIndices.size() > 1, "Expected broadcast to reach multiple subtasks. Found: " + subtaskIndices);
+                System.out.println("[DEBUG_LOG] Total alerts: " + messages.size());
                 System.out.println("[DEBUG_LOG] Broadcast subtasks involved: " + subtaskIndices);
             });
         }

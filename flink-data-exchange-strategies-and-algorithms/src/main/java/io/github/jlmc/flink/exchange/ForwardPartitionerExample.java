@@ -70,10 +70,6 @@ public class ForwardPartitionerExample {
     }
 
     public record UserEvent(String level, String message, String userId) implements Serializable {
-        @Override
-        public String toString() {
-            return String.format("{\"level\": \"%s\", \"message\": \"%s\", \"userId\": \"%s\"}", level, message, userId);
-        }
     }
 
     // Generic Jackson Serialization Schema

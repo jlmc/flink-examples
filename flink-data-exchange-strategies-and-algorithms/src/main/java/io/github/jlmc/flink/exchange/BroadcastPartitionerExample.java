@@ -1,24 +1,24 @@
 package io.github.jlmc.flink.exchange;
 
-import com.fasterxml.jackson.databind.ObjectMapper; // Standard Jackson mapper
-import org.apache.flink.api.common.RuntimeExecutionMode; // To choose execute vs executeAsync
-import org.apache.flink.api.common.eventtime.WatermarkStrategy; // No event-time semantics required here
-import org.apache.flink.api.common.functions.OpenContext; // Lifecycle hook
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.flink.api.common.RuntimeExecutionMode;
+import org.apache.flink.api.common.eventtime.WatermarkStrategy;
+import org.apache.flink.api.common.functions.OpenContext;
 import org.apache.flink.api.common.serialization.SerializationSchema;
-import org.apache.flink.api.common.serialization.SimpleStringSchema; // Kafka String SerDe
-import org.apache.flink.connector.kafka.sink.KafkaRecordSerializationSchema; // Kafka sink serializer builder
-import org.apache.flink.connector.kafka.sink.KafkaSink; // Kafka sink
-import org.apache.flink.connector.kafka.source.KafkaSource; // Kafka source
-import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer; // Start offsets policy
+import org.apache.flink.api.common.serialization.SimpleStringSchema;
+import org.apache.flink.connector.kafka.sink.KafkaRecordSerializationSchema;
+import org.apache.flink.connector.kafka.sink.KafkaSink;
+import org.apache.flink.connector.kafka.source.KafkaSource;
+import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer;
 import org.apache.flink.connector.kafka.util.JacksonMapperFactory;
-import org.apache.flink.streaming.api.datastream.DataStream; // DataStream API
-import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment; // Env
-import org.apache.flink.streaming.api.functions.co.RichCoFlatMapFunction; // Rich co flatMap to access runtime context
-import org.apache.flink.util.Collector; // Collect downstream results
+import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.functions.co.RichCoFlatMapFunction;
+import org.apache.flink.util.Collector;
 
-import java.io.Serializable; // For record type
+import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.atomic.AtomicReference; // Simple holder for latest config per subtask
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Broadcast Partitioner example where a small configuration stream is broadcast to all workers
@@ -103,10 +103,6 @@ public class BroadcastPartitionerExample {
 
     // Output record with subtask info for verification
     public record Alert(Transaction transaction, Rule rule, int subtaskIndex) implements Serializable { // Simple record
-        @Override public String toString() { // JSON-ish output for easy parsing
-            return String.format("{\"transaction\": {\"id\": \"%s\", \"amount\": %.2f}, \"rule\": {\"type\": \"%s\", \"threshold\": %.2f}, \"subtaskIndex\": %d}",
-                    transaction.id(), transaction.amount(), rule.type(), rule.threshold(), subtaskIndex);
-        }
     }
 
     // Generic Jackson Serialization Schema
@@ -145,7 +141,7 @@ public class BroadcastPartitionerExample {
 
         @Override public void flatMap1(String value, Collector<Alert> out) throws Exception { // Called for transactions stream
             Transaction transaction = mapper.readValue(value, Transaction.class);
-            Rule rule = latestRule.get(); // Read latest rule for this subtask
+            Rule rule = latestRule.get(); // Read the latest rule for this subtask
             if (transaction.amount() > rule.threshold()) {
                 out.collect(new Alert(transaction, rule, subtask)); // Emit alert enriched with rule and subtask id
             }

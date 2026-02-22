@@ -88,7 +88,8 @@ public class RebalancePartitionerExampleIT {
         try (KafkaProducer<String, String> producer = new KafkaProducer<>(producerProps)) {
             for (int i = 0; i < messageCount; i++) {
                 // Using null key so Kafka partitions round-robin on producer side
-                producer.send(new ProducerRecord<>(INPUT_TOPIC, String.format("{\"level\": \"INFO\", \"message\": \"event-%d\"}", i)));
+                producer.send(new ProducerRecord<>(INPUT_TOPIC, String.format("""
+                        {"level": "INFO", "message": "event-%d"}""", i)));
             }
             producer.flush();
         }
@@ -118,7 +119,8 @@ public class RebalancePartitionerExampleIT {
                 consumer.poll(Duration.ofMillis(100)).forEach(record -> {
                     String value = record.value();
                     messages.add(value);
-                    if (value.contains("\"subtaskIndex\":")) {
+                    if (value.contains("""
+                            "subtaskIndex":""")) {
                         String indexStr = value.substring(value.lastIndexOf(":") + 1, value.lastIndexOf("}")).trim();
                         subtaskIndices.add(Integer.parseInt(indexStr));
                     }

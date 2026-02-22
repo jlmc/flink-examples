@@ -83,10 +83,14 @@ public class ForwardPartitionerExampleIT {
         producerProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
 
         try (KafkaProducer<String, String> producer = new KafkaProducer<>(producerProps)) {
-            producer.send(new ProducerRecord<>(INPUT_TOPIC, "{\"level\": \"INFO\", \"message\": \"User logged in\", \"userId\": \"user-1\"}"));
-            producer.send(new ProducerRecord<>(INPUT_TOPIC, "{\"level\": \"ERROR\", \"message\": \"Database connection failed\", \"userId\": \"user-2\"}"));
-            producer.send(new ProducerRecord<>(INPUT_TOPIC, "{\"level\": \"DEBUG\", \"message\": \"Fetching data\", \"userId\": \"user-1\"}"));
-            producer.send(new ProducerRecord<>(INPUT_TOPIC, "{\"level\": \"ERROR\", \"message\": \"Out of memory\", \"userId\": \"user-3\"}"));
+            producer.send(new ProducerRecord<>(INPUT_TOPIC, """
+                    {"level": "INFO", "message": "User logged in", "userId": "user-1"}"""));
+            producer.send(new ProducerRecord<>(INPUT_TOPIC, """
+                    {"level": "ERROR", "message": "Database connection failed", "userId": "user-2"}"""));
+            producer.send(new ProducerRecord<>(INPUT_TOPIC, """
+                    {"level": "DEBUG", "message": "Fetching data", "userId": "user-1"}"""));
+            producer.send(new ProducerRecord<>(INPUT_TOPIC, """
+                    {"level": "ERROR", "message": "Out of memory", "userId": "user-3"}"""));
             producer.flush();
         }
 

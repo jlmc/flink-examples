@@ -16,7 +16,7 @@ class JavaCollectionSourcesConnectorExampleJobTest {
 
         SingleOutputStreamOperator<String> stream = buildWithFromCollection(
                 environment,
-                new JavaCollectionSourcesConnectorExampleJob.Configuration("duke", 1)
+                new JavaCollectionSourcesConnectorExampleJob.JobConfiguration("duke", 1)
         );
 
         List<String> fromCollectionExecution = stream.executeAndCollect("From collection Execution", 100);

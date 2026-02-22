@@ -15,9 +15,9 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static io.github.jlmc.flink.j4.JavaCollectionSourcesConnectorExampleJob.buildWithFromCollection;
+import static io.github.jlmc.flink.j4.JavaCollectionSourcesConnectorExampleJob.buildWithFromData;
 import static io.github.jlmc.flink.j4.JavaCollectionSourcesConnectorExampleJob.buildWithFromElements;
 import static io.github.jlmc.flink.j4.JavaCollectionSourcesConnectorExampleJob.buildWithFromSequence;
-import static io.github.jlmc.flink.j4.JavaCollectionSourcesConnectorExampleJob.buildWithFromData;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class JavaCollectionSourcesConnectorExampleJobMiniClusterTest {
@@ -98,7 +98,8 @@ class JavaCollectionSourcesConnectorExampleJobMiniClusterTest {
         // Build your stream
         SingleOutputStreamOperator<String> stream = buildWithFromCollection(
                 env,
-                new JavaCollectionSourcesConnectorExampleJob.Configuration("duke", 1)
+
+                new JavaCollectionSourcesConnectorExampleJob.JobConfiguration("duke", 1)
         );
 
         // Execute the job and collect the results synchronously
@@ -122,7 +123,7 @@ class JavaCollectionSourcesConnectorExampleJobMiniClusterTest {
         // Build your stream
         SingleOutputStreamOperator<String> stream = buildWithFromData(
                 env,
-                new JavaCollectionSourcesConnectorExampleJob.Configuration("duke", 1)
+                new JavaCollectionSourcesConnectorExampleJob.JobConfiguration("duke", 1)
         );
 
         // Execute the job and collect the results synchronously
@@ -146,7 +147,7 @@ class JavaCollectionSourcesConnectorExampleJobMiniClusterTest {
         // Build your stream
         SingleOutputStreamOperator<String> stream = buildWithFromElements(
                 env,
-                new JavaCollectionSourcesConnectorExampleJob.Configuration("duke", 1)
+                new JavaCollectionSourcesConnectorExampleJob.JobConfiguration("duke", 1)
         );
 
         // Execute the job and collect the results synchronously
@@ -181,4 +182,3 @@ class JavaCollectionSourcesConnectorExampleJobMiniClusterTest {
         ), collected);
     }
 }
-

@@ -52,3 +52,83 @@ Check out the full example in `ShufflePartitionerExample.java`.
 |-------------|------------------|------------------------------|-------------------------|
 | Forward     | (1:1)            | Minimal (Zero if chained)    | Must be identical       |
 | Shuffle     | Random (Uniform) | High (Network/Serialization) | Can be different        |
+
+
+---
+
+In Apache Flink 1.20, both **Rebalance** and **Broadcast** are used to redistribute data across the cluster, but they serve opposite purposes: one is for **workload balance** and the other is for **data synchronization**.
+
+## 1. Rebalance Partitioner (`rebalance`)
+
+The **Rebalance** partitioner uses a **Round-Robin** algorithm. It cycles through all available downstream parallel instances one by one to distribute the data.
+
+* **Logic:** If you have 3 downstream tasks (A, B, C), the first record goes to A, the second to B, the third to C, the fourth back to A, and so on.
+* **When to use:** It is the "cure" for **Data Skew** (when some partitions have much more data than others). It ensures every CPU core does exactly the same amount of work.
+* **Difference from Shuffle:** While `shuffle` is random, `rebalance` is deterministic and perfectly even.
+
+### Real-World Example: Evenly Spreading Log Processing
+
+Imagine reading from a Kafka topic where one partition is much larger than the others.
+
+```java
+// 1. Source reading from Kafka (potentially skewed)
+DataStream<String> skewedLogs = env.fromSource(kafkaSource, ...);
+
+// 2. Use rebalance to spread the load perfectly across 10 workers
+DataStream<Result> balancedStream = skewedLogs
+    .rebalance()                          // Uniformly distributes records (Round-Robin)
+    .map(new ComplexLogParser())          // Every worker gets an equal number of logs
+    .setParallelism(10);
+
+```
+
+**Line-by-Line:**
+
+* **Line 2:** The source might be sending 90% of data to one worker because of how Kafka keys were set.
+* **Line 5:** `.rebalance()` intercepts the stream and forces a 1-2-3-1-2-3 distribution pattern.
+* **Line 7:** Now, all 10 parallel instances of `ComplexLogParser` stay equally busy, preventing a single "hot" worker from slowing down the whole job.
+
+---
+
+## 2. Broadcast Partitioner (`broadcast`)
+
+The **Broadcast** partitioner sends **every single record** to **every single parallel instance** of the next operator.
+
+* **Logic:** If you have 10 downstream tasks, each task receives its own copy of every element.
+* **When to use:** For small datasets that contain "rules," "configurations," or "thresholds" that every worker needs to know to process the main data stream.
+* **Warning:** Never broadcast large streams (like raw transactions), as this will multiply your network traffic by the number of workers and likely crash your TaskManagers.
+
+### Real-World Example: Dynamic Fraud Thresholds
+
+Imagine you have a main stream of transactions and a second stream of "Dynamic Limits" set by administrators.
+
+```java
+// 1. The main high-volume stream
+DataStream<Transaction> transactions = env.fromSource(transSource, ...);
+
+// 2. A small stream of configuration updates (e.g., "Limit = $500")
+DataStream<Double> thresholdUpdate = env.fromSource(configSource, ...);
+
+// 3. Broadcast the limit so EVERY worker knows the current threshold
+DataStream<Transaction> alerts = transactions
+    .connect(thresholdUpdate.broadcast()) // Every parallel worker gets the same limit value
+    .process(new FraudDetector());        // Each worker compares its local trans to the global limit
+
+```
+
+**Line-by-Line:**
+
+* **Line 5:** We read a configuration stream that might only have one message per hour.
+* **Line 8:** By calling `.broadcast()`, we ensure that if we have 50 workers processing transactions, **all 50** receive the "Limit = $500" message.
+* **Line 9:** The `FraudDetector` on TaskManager #10 knows the same limit as TaskManager #1, ensuring consistent business logic across the cluster.
+
+---
+
+### Summary Table
+
+| Feature          | **Rebalance**                | **Broadcast**                    |
+|------------------|------------------------------|----------------------------------|
+| **Pattern**      | Round-Robin (1 to 1)         | Replication (1 to All)           |
+| **Main Goal**    | Performance & Load Balancing | Consistency & Shared Logic       |
+| **Network Cost** | Medium (moves data once)     | Very High (multiplies data by N) |
+| **Typical Data** | Heavy raw events             | Small config/rule sets           |

@@ -18,7 +18,6 @@ import org.apache.flink.util.Collector;
 
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Broadcast Partitioner example where a small configuration stream is broadcast to all workers
@@ -71,10 +70,9 @@ public class BroadcastPartitionerExample {
         // Create a Kafka sink to write alerts as strings using Jackson
         KafkaSink<Alert> sink = KafkaSink.<Alert>builder() // Start sink builder
                 .setBootstrapServers(brokers) // Brokers
-                .setRecordSerializer(KafkaRecordSerializationSchema.builder() // Serializer builder
-                        .setTopic(outputTopic) // Alerts topic
-                        .setValueSerializationSchema(new JacksonSerializationSchema<>(Alert.class)) // Jackson serialization
-                        .build()) // Finish serializer
+
+                .setRecordSerializer(new AlertSerializationSchema(outputTopic)) // Finish serializer
+
                 .build(); // Build sink
 
         // Sink alerts to Kafka
@@ -99,57 +97,64 @@ public class BroadcastPartitionerExample {
 
     // Complex types for the example
     public record Transaction(String id, double amount) implements Serializable {}
-    public record Rule(String type, double threshold) implements Serializable {}
+    public record Rule(String id, String type, double threshold) implements Serializable {}
 
     // Output record with subtask info for verification
-    public record Alert(Transaction transaction, Rule rule, int subtaskIndex) implements Serializable { // Simple record
+    public record Alert(String id, Transaction transaction, Rule rule, int subtaskIndex) implements Serializable { // Simple record
     }
 
     // Generic Jackson Serialization Schema
-    public static class JacksonSerializationSchema<T> implements SerializationSchema<T> {
+    public static class AlertSerializationSchema implements KafkaRecordSerializationSchema<Alert> {
+        private final String topic;
         private transient ObjectMapper mapper;
-        private final Class<T> clazz;
 
-        public JacksonSerializationSchema(Class<T> clazz) {
-            this.clazz = clazz;
+        public AlertSerializationSchema(String topic) {
+            this.topic = topic;
         }
 
-        @Override public void open(InitializationContext context) {
+        @Override
+        public void open(SerializationSchema.InitializationContext context, KafkaSinkContext sinkContext) throws Exception {
             this.mapper = JacksonMapperFactory.createObjectMapper();
         }
 
-        @Override public byte[] serialize(T element) {
+        @Override
+        public org.apache.kafka.clients.producer.ProducerRecord<byte[], byte[]> serialize(Alert element, KafkaSinkContext context, Long timestamp) {
             try {
-                return mapper.writeValueAsString(element).getBytes(StandardCharsets.UTF_8);
+                byte[] key = element.id().getBytes(StandardCharsets.UTF_8);
+                byte[] value = mapper.writeValueAsBytes(element);
+                return new org.apache.kafka.clients.producer.ProducerRecord<>(topic, key, value);
             } catch (Exception e) {
-                return new byte[0];
+                throw new RuntimeException(e);
             }
         }
     }
 
     // Rich co-flatMap that stores and applies the latest rule seen by this subtask
     public static class FraudDetectorFunction extends RichCoFlatMapFunction<String, String, Alert> { // Rich variant to access subtask index
-        private transient AtomicReference<Rule> latestRule; // Holds latest rule for this subtask
+        private transient java.util.Map<String, Rule> rulesRepository; // Holds rules for this subtask
         private transient int subtask; // Cached subtask index
         private transient ObjectMapper mapper; // For JSON parsing
 
         @Override public void open(OpenContext openContext) { // Initialize on TM
-            this.latestRule = new AtomicReference<>(new Rule("DEFAULT", 1000.0)); // Default rule
+            this.rulesRepository = new java.util.concurrent.ConcurrentHashMap<>();
+            this.rulesRepository.put("DEFAULT", new Rule("DEFAULT", "DEFAULT", 1000.0)); // Default rule
             this.subtask = getRuntimeContext().getTaskInfo().getIndexOfThisSubtask(); // Capture subtask id
             this.mapper = JacksonMapperFactory.createObjectMapper();
         }
 
         @Override public void flatMap1(String value, Collector<Alert> out) throws Exception { // Called for transactions stream
             Transaction transaction = mapper.readValue(value, Transaction.class);
-            Rule rule = latestRule.get(); // Read the latest rule for this subtask
-            if (transaction.amount() > rule.threshold()) {
-                out.collect(new Alert(transaction, rule, subtask)); // Emit alert enriched with rule and subtask id
+            for (Rule rule : rulesRepository.values()) {
+                if (transaction.amount() > rule.threshold()) {
+                    String alertId = transaction.id() + "-" + rule.id();
+                    out.collect(new Alert(alertId, transaction, rule, subtask)); // Emit alert enriched with rule and subtask id
+                }
             }
         }
 
         @Override public void flatMap2(String ruleValue, Collector<Alert> out) throws Exception { // Called for broadcasted rules
             Rule rule = mapper.readValue(ruleValue, Rule.class);
-            latestRule.set(rule); // Update rule for all subsequent transactions on this subtask
+            rulesRepository.put(rule.id(), rule); // Update repository for all subsequent transactions on this subtask
         }
     }
 }

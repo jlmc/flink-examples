@@ -5,13 +5,13 @@ import org.apache.flink.api.common.RuntimeExecutionMode; // Used to decide sync/
 import org.apache.flink.api.common.eventtime.WatermarkStrategy; // No watermarks needed for this simple example
 import org.apache.flink.api.common.functions.OpenContext; // Lifecycle hook for Rich functions
 import org.apache.flink.api.common.functions.RichMapFunction; // To access subtask index for demonstration
-import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.common.serialization.SimpleStringSchema; // Kafka String serializer/deserializer
 import org.apache.flink.connector.kafka.sink.KafkaRecordSerializationSchema; // To build sink to Kafka
 import org.apache.flink.connector.kafka.sink.KafkaSink; // Kafka sink
 import org.apache.flink.connector.kafka.source.KafkaSource; // Kafka source
 import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer; // Start at earliest for tests
 import org.apache.flink.connector.kafka.util.JacksonMapperFactory;
+import org.apache.flink.formats.json.JsonSerializationSchema;
 import org.apache.flink.streaming.api.datastream.DataStream; // Core Flink DataStream API
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment; // Flink env
 
@@ -58,9 +58,11 @@ public class RebalancePartitionerExample {
         // Create a Kafka sink that writes the JSON-ified LogEvent output using Jackson
         KafkaSink<LogEvent> sink = KafkaSink.<LogEvent>builder() // Start KafkaSink builder
                 .setBootstrapServers(brokers) // Kafka address
+
                 .setRecordSerializer(KafkaRecordSerializationSchema.builder() // Build record serializer
                         .setTopic(outputTopic) // Target topic
-                        .setValueSerializationSchema(new JacksonSerializationSchema<>(LogEvent.class)) // Jackson serialization
+                        .setValueSerializationSchema(new JsonSerializationSchema<LogEvent>()) // Jackson serialization
+                        .setKeySerializationSchema(logEvent -> logEvent.id() != null ? logEvent.id().getBytes(StandardCharsets.UTF_8) : new byte[0]) // Use id as key if present
                         .build()) // Finish record serializer
                 .build(); // Build the sink
 
@@ -83,29 +85,7 @@ public class RebalancePartitionerExample {
     }
 
     // Simple record type capturing original payload and processing subtask index
-    public record LogEvent(String level, String message, int subtaskIndex) implements Serializable { // Java 17 record with Serializable
-    }
-
-    // Generic Jackson Serialization Schema
-    public static class JacksonSerializationSchema<T> implements SerializationSchema<T> {
-        private transient ObjectMapper mapper;
-        private final Class<T> clazz;
-
-        public JacksonSerializationSchema(Class<T> clazz) {
-            this.clazz = clazz;
-        }
-
-        @Override public void open(InitializationContext context) {
-            this.mapper = JacksonMapperFactory.createObjectMapper();
-        }
-
-        @Override public byte[] serialize(T element) {
-            try {
-                return mapper.writeValueAsString(element).getBytes(StandardCharsets.UTF_8);
-            } catch (Exception e) {
-                return new byte[0];
-            }
-        }
+    public record LogEvent(String id,  String level, String message, int subtaskIndex) implements Serializable { // Java 17 record with Serializable
     }
 
     // Rich function to access subtask index and attach it to each processed element
@@ -120,7 +100,7 @@ public class RebalancePartitionerExample {
 
         @Override public LogEvent map(String value) throws Exception { // Map each input value
             LogEvent event = mapper.readValue(value, LogEvent.class);
-            return new LogEvent(event.level(), event.message(), subtask); // Tag with subtask index
+            return new LogEvent(event.id(), event.level(), event.message(), subtask); // Tag with subtask index
         }
     }
 }

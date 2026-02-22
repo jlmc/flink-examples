@@ -24,20 +24,27 @@ source.map(value -> value.toUpperCase())
 
 The Shuffle Partitioner distributes data uniformly and randomly across all parallel instances of the downstream operator.
 
+In the Shuffle each upstream record (source element) is sent only to one instance of the downstream operator, but the selection of that instance is random. This means that the data is distributed in a non-deterministic way, which can help to balance the load across all instances. 
+The goal balances the workload for heavy sources or heavy computations.
+The result is, if we have 100 messages and 4 downstream instances, each instance will receive approximately 25 messages, but which specific messages go to which instance is random.
+
 * **Technical Description**: Distributes the data equally by selecting one output channel randomly based on a uniform distribution. This breaks any previous data affinity or grouping.
 * **When to use**: Use this to rebalance the workload when you have "data skew" (some subtasks are busier than others) or when you want to ensure a fair distribution of elements regardless of their keys.
 * **Cost**: High. It involves network I/O and serialization/deserialization costs as data is moved between different TaskManagers.
 
 ```java
-DataStream<String> source = env.fromElements("Task1", "Task2", "Task3", "Task4");
+// 1. Source with low parallelism (e.g., a single file or small Kafka topic)
+DataStream<String> heavyLogStream = env.readTextFile("hdfs:///logs/huge_file.txt")
+    .setParallelism(1); 
 
-// Randomly redistributes elements to 4 parallel subtasks
-source.shuffle()
-      .map(value -> "Processed by: " + value)
-      .setParallelism(4)
-      .print();
+// 2. Distribute the heavy load across the cluster
+DataStream<Result> processedStream = heavyLogStream
+    .shuffle()                            // Randomly sends data to all available workers
+    .map(new HeavyComputeFunction())      // A CPU-intensive operation
+    .setParallelism(10);                  // Scale up to 10 workers
 ```
 
+Check out the full example in `ShufflePartitionerExample.java`.
 
 ---
 

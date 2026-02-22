@@ -1,18 +1,22 @@
 package io.github.jlmc.flink.exchange;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.api.common.RuntimeExecutionMode; // Used to decide sync/async execution
 import org.apache.flink.api.common.eventtime.WatermarkStrategy; // No watermarks needed for this simple example
 import org.apache.flink.api.common.functions.OpenContext; // Lifecycle hook for Rich functions
 import org.apache.flink.api.common.functions.RichMapFunction; // To access subtask index for demonstration
+import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.common.serialization.SimpleStringSchema; // Kafka String serializer/deserializer
 import org.apache.flink.connector.kafka.sink.KafkaRecordSerializationSchema; // To build sink to Kafka
 import org.apache.flink.connector.kafka.sink.KafkaSink; // Kafka sink
 import org.apache.flink.connector.kafka.source.KafkaSource; // Kafka source
 import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer; // Start at earliest for tests
+import org.apache.flink.connector.kafka.util.JacksonMapperFactory;
 import org.apache.flink.streaming.api.datastream.DataStream; // Core Flink DataStream API
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment; // Flink env
 
 import java.io.Serializable; // For the record type
+import java.nio.charset.StandardCharsets;
 
 /**
  * Rebalance Partitioner example demonstrating deterministic round-robin distribution.
@@ -46,23 +50,22 @@ public class RebalancePartitionerExample {
         DataStream<String> rawStream = env.fromSource(kafkaSource, WatermarkStrategy.noWatermarks(), "Kafka Skewed Logs"); // Source operator
 
         // Define the processing workflow with a rebalance step
-        DataStream<Processed> processed = defineWorkflow(rawStream); // Apply transformation chain
+        DataStream<LogEvent> processed = defineWorkflow(rawStream); // Apply transformation chain
 
         // Print for local visibility (optional; handy during dev)
         processed.print(); // Side-effect: logs to stdout
 
-        // Create a Kafka sink that writes the JSON-ified Processed output to the output topic
-        KafkaSink<String> sink = KafkaSink.<String>builder() // Start KafkaSink builder
+        // Create a Kafka sink that writes the JSON-ified LogEvent output using Jackson
+        KafkaSink<LogEvent> sink = KafkaSink.<LogEvent>builder() // Start KafkaSink builder
                 .setBootstrapServers(brokers) // Kafka address
                 .setRecordSerializer(KafkaRecordSerializationSchema.builder() // Build record serializer
                         .setTopic(outputTopic) // Target topic
-                        .setValueSerializationSchema(new SimpleStringSchema()) // Write value as String
+                        .setValueSerializationSchema(new JacksonSerializationSchema<>(LogEvent.class)) // Jackson serialization
                         .build()) // Finish record serializer
                 .build(); // Build the sink
 
-        // Convert to String (JSON-like) and send to Kafka
-        processed.map(Processed::toString) // Serialize Processed record
-                .sinkTo(sink); // Connect to Kafka sink
+        // Send to Kafka
+        processed.sinkTo(sink); // Connect to Kafka sink
 
         // Execute synchronously in batch, asynchronously otherwise (so ITs don't block)
         if (env.getConfiguration().get(org.apache.flink.configuration.ExecutionOptions.RUNTIME_MODE) == RuntimeExecutionMode.BATCH) { // Check runtime
@@ -73,27 +76,54 @@ public class RebalancePartitionerExample {
     }
 
     // Core workflow demonstrating .rebalance() to force round-robin distribution across downstream subtasks
-    public static DataStream<Processed> defineWorkflow(DataStream<String> input) { // Transformation definition
+    public static DataStream<LogEvent> defineWorkflow(DataStream<String> input) { // Transformation definition
         return input // Start with raw input lines
                 .rebalance() // Force round-robin distribution to evenly spread load
-                .map(new TagWithSubtaskIndex()); // Map each element and record which subtask processed it
+                .map(new JsonToLogEventParser()); // Map each element and record which subtask processed it
     }
 
     // Simple record type capturing original payload and processing subtask index
-    public record Processed(String original, int subtaskIndex) implements Serializable { // Java 17 record with Serializable
+    public record LogEvent(String level, String message, int subtaskIndex) implements Serializable { // Java 17 record with Serializable
         @Override public String toString() { // JSON-ish string for easy parsing in tests
-            return "{\"original\": \"" + original + "\", \"subtaskIndex\": " + subtaskIndex + "}"; // Compact representation
+            return String.format("{\"level\": \"%s\", \"message\": \"%s\", \"subtaskIndex\": %d}", level, message, subtaskIndex);
+        }
+    }
+
+    // Generic Jackson Serialization Schema
+    public static class JacksonSerializationSchema<T> implements SerializationSchema<T> {
+        private transient ObjectMapper mapper;
+        private final Class<T> clazz;
+
+        public JacksonSerializationSchema(Class<T> clazz) {
+            this.clazz = clazz;
+        }
+
+        @Override public void open(InitializationContext context) {
+            this.mapper = JacksonMapperFactory.createObjectMapper();
+        }
+
+        @Override public byte[] serialize(T element) {
+            try {
+                return mapper.writeValueAsString(element).getBytes(StandardCharsets.UTF_8);
+            } catch (Exception e) {
+                return new byte[0];
+            }
         }
     }
 
     // Rich function to access subtask index and attach it to each processed element
-    public static class TagWithSubtaskIndex extends RichMapFunction<String, Processed> { // RichMap to access runtime context
+    public static class JsonToLogEventParser extends RichMapFunction<String, LogEvent> { // RichMap to access runtime context
         private transient int subtask; // Cached subtask index (transient: not serialized)
+        private transient ObjectMapper mapper;
+
         @Override public void open(OpenContext openContext) { // Initialize on TM side
-            this.subtask = getRuntimeContext().getIndexOfThisSubtask(); // Obtain subtask id (0..parallelism-1)
+            this.subtask = getRuntimeContext().getTaskInfo().getIndexOfThisSubtask(); // Obtain subtask id (0..parallelism-1)
+            this.mapper = JacksonMapperFactory.createObjectMapper();
         }
-        @Override public Processed map(String value) { // Map each input value
-            return new Processed(value, subtask); // Tag with subtask index
+
+        @Override public LogEvent map(String value) throws Exception { // Map each input value
+            LogEvent event = mapper.readValue(value, LogEvent.class);
+            return new LogEvent(event.level(), event.message(), subtask); // Tag with subtask index
         }
     }
 }

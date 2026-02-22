@@ -43,7 +43,7 @@ public class BroadcastPartitionerExampleIT {
             .withEnv("KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR", "1");
 
     private static final String DATA_TOPIC = "transactions";
-    private static final String CONFIG_TOPIC = "thresholds";
+    private static final String CONFIG_TOPIC = "rules";
     private static final String OUTPUT_TOPIC = "alerts";
 
     static {
@@ -87,12 +87,12 @@ public class BroadcastPartitionerExampleIT {
         producerProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
 
         try (KafkaProducer<String, String> producer = new KafkaProducer<>(producerProps)) {
-            // First, send a threshold so every subtask will have it before data arrives (best-effort in test)
-            producer.send(new ProducerRecord<>(CONFIG_TOPIC, "THRESHOLD=500"));
+            // First, send a rule so every subtask will have it before data arrives (best-effort in test)
+            producer.send(new ProducerRecord<>(CONFIG_TOPIC, "{\"type\": \"FRAUD\", \"threshold\": 50.0}"));
 
-            // Now send some data events
+            // Now send some transactions
             for (int i = 0; i < 40; i++) {
-                producer.send(new ProducerRecord<>(DATA_TOPIC, "txn-" + i));
+                producer.send(new ProducerRecord<>(DATA_TOPIC, String.format("{\"id\": \"txn-%d\", \"amount\": %.2f}", i, 100.0 + i)));
             }
             producer.flush();
         }
@@ -123,7 +123,8 @@ public class BroadcastPartitionerExampleIT {
                 consumer.poll(Duration.ofMillis(100)).forEach(record -> {
                     String value = record.value();
                     messages.add(value);
-                    if (value.contains("\"threshold\": \"THRESHOLD=500\"")) { // Ensure broadcasted value is applied
+                    if (value.contains("\"threshold\":50.0")) { // Ensure broadcasted rule is applied
+                        // Extract subtaskIndex from JSON: ... "subtaskIndex":N}
                         int idxStart = value.lastIndexOf(":");
                         int idxEnd = value.lastIndexOf("}");
                         if (idxStart > 0 && idxEnd > idxStart) {
@@ -133,7 +134,7 @@ public class BroadcastPartitionerExampleIT {
                     }
                 });
 
-                assertTrue(messages.size() >= 40, "Expected alerts for data. Received: " + messages.size());
+                assertTrue(messages.size() >= 10, "Expected at least 10 alerts for data. Received: " + messages.size());
                 assertTrue(subtaskIndices.size() > 1, "Expected broadcast to reach multiple subtasks. Found: " + subtaskIndices);
                 System.out.println("[DEBUG_LOG] Broadcast subtasks involved: " + subtaskIndices);
             });

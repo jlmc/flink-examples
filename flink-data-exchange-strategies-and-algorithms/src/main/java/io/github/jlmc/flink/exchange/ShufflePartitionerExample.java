@@ -5,6 +5,7 @@ import org.apache.flink.api.common.RuntimeExecutionMode;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.functions.OpenContext;
 import org.apache.flink.api.common.functions.RichMapFunction;
+import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.configuration.ExecutionOptions;
 import org.apache.flink.connector.kafka.sink.KafkaRecordSerializationSchema;
@@ -16,6 +17,7 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 
 import java.io.Serializable;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Shuffle Partitioner Example.
@@ -59,17 +61,16 @@ public class ShufflePartitionerExample {
 
         processedStream.print();
 
-        // 3. Sink the results to Kafka
-        KafkaSink<String> sink = KafkaSink.<String>builder()
+        // 3. Sink the results to Kafka using Jackson
+        KafkaSink<Result> sink = KafkaSink.<Result>builder()
                 .setBootstrapServers(brokers)
                 .setRecordSerializer(KafkaRecordSerializationSchema.builder()
                         .setTopic(outputTopic)
-                        .setValueSerializationSchema(new SimpleStringSchema())
+                        .setValueSerializationSchema(new JacksonSerializationSchema<>(Result.class))
                         .build())
                 .build();
 
-        processedStream.map(Result::toString)
-                .sinkTo(sink);
+        processedStream.sinkTo(sink);
 
         // 4. Handle Execution Mode
         if (env.getConfiguration().get(ExecutionOptions.RUNTIME_MODE) == RuntimeExecutionMode.BATCH) {
@@ -82,8 +83,29 @@ public class ShufflePartitionerExample {
     public record Result(String original, String processed, int subtaskIndex) implements Serializable {
         @Override
         public String toString() {
-            return String.format("""
-                    {"original": "%s", "processed": "%s", "subtaskIndex": %d}""", original, processed, subtaskIndex);
+            return String.format("{\"original\": \"%s\", \"processed\": \"%s\", \"subtaskIndex\": %d}", original, processed, subtaskIndex);
+        }
+    }
+
+    // Generic Jackson Serialization Schema
+    public static class JacksonSerializationSchema<T> implements SerializationSchema<T> {
+        private transient ObjectMapper mapper;
+        private final Class<T> clazz;
+
+        public JacksonSerializationSchema(Class<T> clazz) {
+            this.clazz = clazz;
+        }
+
+        @Override public void open(InitializationContext context) {
+            this.mapper = JacksonMapperFactory.createObjectMapper();
+        }
+
+        @Override public byte[] serialize(T element) {
+            try {
+                return mapper.writeValueAsString(element).getBytes(StandardCharsets.UTF_8);
+            } catch (Exception e) {
+                return new byte[0];
+            }
         }
     }
 

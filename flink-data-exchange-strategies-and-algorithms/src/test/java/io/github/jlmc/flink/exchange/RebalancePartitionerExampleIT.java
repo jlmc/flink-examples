@@ -88,7 +88,7 @@ public class RebalancePartitionerExampleIT {
         try (KafkaProducer<String, String> producer = new KafkaProducer<>(producerProps)) {
             for (int i = 0; i < messageCount; i++) {
                 // Using null key so Kafka partitions round-robin on producer side
-                producer.send(new ProducerRecord<>(INPUT_TOPIC, "event-" + i));
+                producer.send(new ProducerRecord<>(INPUT_TOPIC, String.format("{\"level\": \"INFO\", \"message\": \"event-%d\"}", i)));
             }
             producer.flush();
         }

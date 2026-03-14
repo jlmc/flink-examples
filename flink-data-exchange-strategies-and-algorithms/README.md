@@ -229,3 +229,71 @@ Check out the full example in `GlobalPartitionerExample.java`.
 | **Rebalance** | Round-Robin to All      | Load balancing to fix data skew.       |
 
 > **Performance Tip:** Never use `global()` for massive data volumes (e.g., Terabytes per hour). A single JVM cannot handle that throughput alone, leading to `OutOfMemory` errors or extreme latency.
+
+---
+
+## 6. Custom Partitioner
+
+- In Flink 1.2, a CustomPartitioner (or specifically the Partitioner interface) is used when you need manual control over how data is distributed across parallel instances of an operator. 
+- Unlike keyBy, which uses an internal hash function to ensure keys go to specific "key groups," a custom partitioner allows you to define the exact destination subtask index.
+
+### - 1. **The Partitioner Interface**
+
+To create a custom partitioner, you must implement the org.apache.flink.api.common.functions.Partitioner<K> interface. This interface has a single method:
+
+```java
+import org.apache.flink.api.common.functions.Partitioner;
+
+public class MyCustomPartitioner implements Partitioner<Integer> {
+    @Override
+    public int partition(Integer key, int numPartitions) {
+        // Return the index of the target subtask (0 to numPartitions - 1)
+        // Example: Send even keys to even partitions, odd to odd
+        return key % numPartitions;
+    }
+}
+```
+
+### 2. Usage in DataStream API
+
+In Flink 1.2, you apply the partitioner using the partitionCustom method. You provide both your partitioner and a KeySelector to identify which part of the data the partitioner should act upon.
+
+```java
+DataStream<Tuple2<Integer, String>> source = ...;
+
+DataStream<Tuple2<Integer, String>> partitioned = source.partitionCustom(
+    new MyCustomPartitioner(), 
+    value -> value.f0 // KeySelector: partition based on the first field (Integer)
+);
+```
+In this example, the MyCustomPartitioner will receive the integer key from the first field of the tuple and determine which subtask should process each record based on the logic defined in the partition method.
+
+### Key Differences: partitionCustom vs keyBy
+
+| Feature          | partitionCustom                                                                | keyBy                                                         |
+|------------------|--------------------------------------------------------------------------------|---------------------------------------------------------------|
+| **Stream Type**  | Returns a DataStream                                                           | Returns a KeyedStream                                         |
+| **State**        | Does not allow Keyed State                                                     | Required for Keyed State                                      |
+| **Control**      | Precise control over the subtask index, Full control over partitioning logic   | Managed by Flink via Hash/Key Groups                          |
+| **Use Case**     | Handling extreme data skew manually                                            | Standard grouping and stateful operations                     |
+| **--**           | --                                                                             | --                                                            |
+| **Key Selector** | Requires a KeySelector to extract keys                                         | No need for a KeySelector (uses the entire record as the key) |
+| **Use Case**     | Complex partitioning strategies (e.g., custom load balancing)                  | Grouping by key for stateful operations (e.g., aggregations)  |
+| **Performance**  | Can be optimized for specific patterns but may require more development effort | Optimized for common use cases and easier to implement        |
+
+> ⚠️ [!IMPORTANT]
+> A common pitfall: Using partitionCustom does not turn a stream into a KeyedStream.  
+> This means you cannot use functions like RichFlatMapFunction with ValueState or ListState immediately after a custom partitioner.  
+> If you need keyed state, you must use keyBy.
+
+
+### USE CASES
+
+- In Flink 1.2, while keyBy is the bread and butter of stream processing, it isn't always the smartest tool in the shed. Because keyBy uses a deterministic hash, it can be very "fair"—and in distributed systems, "fair" isn't always "balanced."
+- Here are the most common use cases for a CustomPartitioner:
+
+1. Combating Severe Data Skew (The "Hot Key" Problem)
+  - This is the #1 reason to use a custom partitioner. Imagine you are processing logs from a global e-commerce site.
+  - The Issue: During a sale, the key "Electronics" might represent 80% of your traffic, while "Books" represents 1%.
+  - The Result: If you keyBy("category"), one worker is on fire while the others are idle.
+  - The Solution: Use a CustomPartitioner to distribute the "Electronics" key randomly or round-robin across multiple subtasks to spread the load.

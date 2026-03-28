@@ -97,6 +97,19 @@ Examples of how to connect Flink to different data sources:
 
 ---
 
+### Sink Connectors
+
+Examples of how to connect Flink to different data sinks:
+
+* **Socket**: [Socket Sink Connector](flink-sink-connectors/socket-sink-connector)
+* **Local File System**: [Local File System Sink Connector](flink-sink-connectors/local-file-system-sink-connector)
+* **HDFS**: [HDFS File System Sink Connector](flink-sink-connectors/hdfs-file-system-sink-connector)
+* **JDBC**: [JDBC Sink Connector](flink-sink-connectors/jdbc-sink-connector)
+* **Kafka**: [Apache Kafka Sink Connector](flink-sink-connectors/apache-kafka-sink-connector)
+* **MongoDB**: [MongoDB Sink Connector](flink-sink-connectors/mongodb-sink-connector)
+* **Custom Sink**: [Custom Sink Connector](flink-sink-connectors/custom-sink-connector)
+
+
 ### Processing Examples
 
 Various processing patterns using Flink:

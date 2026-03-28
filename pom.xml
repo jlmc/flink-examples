@@ -21,6 +21,7 @@
     </properties>
 
     <modules>
+        <module>flink-test-utils</module>
         <module>flink-hello-world</module>
         <module>flink-works-counter-batch-processing</module>
         <module>flink-works-counter-stream-processing</module>
@@ -31,6 +32,6 @@
         <module>flink-stream-data-transformations</module>
         <module>flink-stream-multistream-transformations</module>
         <module>flink-stream-side-output</module>
-        <module>flink-test-utils</module>
+        <module>flink-data-exchange-strategies-and-algorithms</module>
     </modules>
 </project>

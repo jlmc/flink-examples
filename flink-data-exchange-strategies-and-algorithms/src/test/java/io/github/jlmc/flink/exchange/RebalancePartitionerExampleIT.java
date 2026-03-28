@@ -1,13 +1,9 @@
-package io.github.jlmc.flink.sideoutput;
+package io.github.jlmc.flink.exchange;
 
-import org.apache.flink.api.common.RuntimeExecutionMode;
-import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -24,9 +20,10 @@ import org.testcontainers.utility.TestcontainersConfiguration;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -34,7 +31,7 @@ import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Testcontainers(disabledWithoutDocker = true)
-public class PaymentProcessorSideOutputExampleIT {
+public class RebalancePartitionerExampleIT {
 
     @Container
     private static final KafkaContainer KAFKA = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.7.2").asCompatibleSubstituteFor("confluentinc/cp-kafka"))
@@ -45,12 +42,10 @@ public class PaymentProcessorSideOutputExampleIT {
             .withEnv("KAFKA_TRANSACTION_STATE_LOG_MIN_ISR", "1")
             .withEnv("KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR", "1");
 
-    private static final String INPUT_TOPIC = "transaction";
-    private static final String SUCCESS_TOPIC = "transactions-success";
-    private static final String ERROR_TOPIC = "transactions-errors";
+    private static final String INPUT_TOPIC = "skewed-logs";
+    private static final String OUTPUT_TOPIC = "balanced-results";
 
     static {
-        // this may be needed for MacOS users to ensure Testcontainers can find the Docker socket, especially if using Docker Desktop with a custom socket path.
         String os = System.getProperty("os.name").toLowerCase();
         if (os.contains("mac")) {
             String userHome = System.getProperty("user.home");
@@ -74,51 +69,39 @@ public class PaymentProcessorSideOutputExampleIT {
         Properties adminProps = new Properties();
         adminProps.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers());
         try (AdminClient adminClient = AdminClient.create(adminProps)) {
-            adminClient.createTopics(Arrays.asList(
-                    new NewTopic(INPUT_TOPIC, 1, (short) 1),
-                    new NewTopic(SUCCESS_TOPIC, 1, (short) 1),
-                    new NewTopic(ERROR_TOPIC, 1, (short) 1)
+            adminClient.createTopics(List.of(
+                    new NewTopic(INPUT_TOPIC, 4, (short) 1), // multiple partitions
+                    new NewTopic(OUTPUT_TOPIC, 1, (short) 1)
             )).all().get(30, TimeUnit.SECONDS);
         }
     }
 
     @Test
-    void shouldProcessTransactionsThroughKafka() throws Exception {
+    void shouldEvenlySpreadLoadWithRebalance() throws Exception {
         // 1. Produce data to input topic
         Properties producerProps = new Properties();
         producerProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers());
         producerProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         producerProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
 
+        int messageCount = 80;
         try (KafkaProducer<String, String> producer = new KafkaProducer<>(producerProps)) {
-            // Valid transaction
-            producer.send(new ProducerRecord<>(INPUT_TOPIC, "{\"amount\": 100.50}"));
-            // Business error (negative)
-            producer.send(new ProducerRecord<>(INPUT_TOPIC, "{\"amount\": -5.0}"));
-            // Technical error (non-numeric or missing amount)
-            producer.send(new ProducerRecord<>(INPUT_TOPIC, "{\"amount\": \"invalid\"}"));
-            producer.send(new ProducerRecord<>(INPUT_TOPIC, "corrupted_json"));
+            for (int i = 0; i < messageCount; i++) {
+                // Using null key so Kafka partitions round-robin on producer side
+                producer.send(new ProducerRecord<>(INPUT_TOPIC, String.format("""
+                        {"id": "e-%s", "level": "INFO", "message": "event-%d"}""", i, i)));
+            }
             producer.flush();
         }
 
         // 2. Start Flink job
         System.setProperty("brokers", KAFKA.getBootstrapServers());
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        env.setRuntimeMode(RuntimeExecutionMode.STREAMING);
-        env.setParallelism(1);
+        System.setProperty("input-topic", INPUT_TOPIC);
+        System.setProperty("output-topic", OUTPUT_TOPIC);
 
-        // We run the main method in a separate thread because execute() is blocking, 
-        // or we use executeAsync(). Since PaymentProcessorSideOutputExample.main calls env.execute(),
-        // we can just call it here.
-        new Thread(() -> {
-            try {
-                PaymentProcessorSideOutputExample.main(new String[0]);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }).start();
+        RebalancePartitionerExample.execute(new String[0]);
 
-        // 3. Consume from output topics and verify
+        // 3. Consume from output topic and verify
         Properties consumerProps = new Properties();
         consumerProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA.getBootstrapServers());
         consumerProps.put(ConsumerConfig.GROUP_ID_CONFIG, "test-group-" + UUID.randomUUID());
@@ -126,29 +109,26 @@ public class PaymentProcessorSideOutputExampleIT {
         consumerProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         consumerProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
-        try (KafkaConsumer<String, String> successConsumer = new KafkaConsumer<>(consumerProps);
-             KafkaConsumer<String, String> errorConsumer = new KafkaConsumer<>(consumerProps)) {
-            
-            successConsumer.subscribe(List.of(SUCCESS_TOPIC));
-            errorConsumer.subscribe(List.of(ERROR_TOPIC));
+        try (KafkaConsumer<String, String> consumer = new KafkaConsumer<>(consumerProps)) {
+            consumer.subscribe(List.of(OUTPUT_TOPIC));
 
-            List<String> successMessages = new ArrayList<>();
-            List<String> errorMessages = new ArrayList<>();
+            List<String> messages = new ArrayList<>();
+            Set<Integer> subtaskIndices = new HashSet<>();
 
             await().atMost(Duration.ofSeconds(60)).untilAsserted(() -> {
-                ConsumerRecords<String, String> successRecords = successConsumer.poll(Duration.ofMillis(100));
-                for (ConsumerRecord<String, String> record : successRecords) {
-                    successMessages.add(record.value());
-                }
+                consumer.poll(Duration.ofMillis(100)).forEach(record -> {
+                    String value = record.value();
+                    messages.add(value);
+                    if (value.contains("""
+                            "subtaskIndex":""")) {
+                        String indexStr = value.substring(value.lastIndexOf(":") + 1, value.lastIndexOf("}")).trim();
+                        subtaskIndices.add(Integer.parseInt(indexStr));
+                    }
+                });
 
-                ConsumerRecords<String, String> errorRecords = errorConsumer.poll(Duration.ofMillis(100));
-                for (ConsumerRecord<String, String> record : errorRecords) {
-                    errorMessages.add(record.value());
-                }
-
-                assertTrue(successMessages.contains("VALID_TRANSACTION: 100.5"), "Missing success message. Received: " + successMessages);
-                assertTrue(errorMessages.stream().anyMatch(m -> m.contains("BUSINESS_EXCEPTION") && m.contains("-5.0")), "Missing business exception. Received: " + errorMessages);
-                assertTrue(errorMessages.stream().anyMatch(m -> m.contains("TECHNICAL_EXCEPTION")), "Missing technical exception. Received: " + errorMessages);
+                assertTrue(messages.size() >= messageCount, "Expected at least " + messageCount + " messages. Received: " + messages.size());
+                assertTrue(subtaskIndices.size() > 1, "Expected multiple subtasks due to rebalance. Found: " + subtaskIndices);
+                System.out.println("[DEBUG_LOG] Rebalance subtasks involved: " + subtaskIndices);
             });
         }
     }

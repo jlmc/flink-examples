@@ -1,0 +1,87 @@
+services:
+  jobmanager:
+    image: apache/flink:1.20.3-scala_2.12-java11
+    container_name: jobmanager
+    ports:
+      - "8081:8081"
+    command: jobmanager
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+        fs.allowed-fallback-filesystems: s3
+        fs.s3a.access.key: minio
+        fs.s3a.secret.key: minio123
+        fs.s3a.endpoint: http://minio:9000
+        fs.s3a.path.style.access: true
+      - AWS_ACCESS_KEY_ID=minio
+      - AWS_SECRET_ACCESS_KEY=minio123
+      - AWS_REGION=us-east-1
+    volumes:
+      - ./plugins:/opt/flink/plugins
+    networks:
+      - s3_network
+
+  taskmanager:
+    image: apache/flink:1.20.3-scala_2.12-java11
+    container_name: taskmanager
+    depends_on:
+      - jobmanager
+    command: taskmanager
+    scale: 1
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+        taskmanager.numberOfTaskSlots: 2
+        fs.allowed-fallback-filesystems: s3
+        fs.s3a.access.key: minio
+        fs.s3a.secret.key: minio123
+        fs.s3a.endpoint: http://minio:9000
+        fs.s3a.path.style.access: true
+      - AWS_ACCESS_KEY_ID=minio
+      - AWS_SECRET_ACCESS_KEY=minio123
+      - AWS_REGION=us-east-1
+    volumes:
+      - ./plugins:/opt/flink/plugins
+    networks:
+      - s3_network
+
+  minio:
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z-cpuv1
+    container_name: minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ACCESS_KEY: minio
+      MINIO_SECRET_KEY: minio123
+    volumes:
+      - ./minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - s3_network
+
+  minio_setup:
+    image: minio/mc:RELEASE.2025-08-13T08-35-41Z-cpuv1
+    container_name: minio_setup
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set minio http://minio:9000 minio minio123;
+      mc mb --ignore-existing minio/flink-s3-bucket;
+      echo 'MinIO setup completed';
+      "
+    networks:
+      - s3_network
+
+networks:
+  s3_network:
+    driver: bridge

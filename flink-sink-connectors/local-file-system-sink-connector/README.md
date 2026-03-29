@@ -3,21 +3,38 @@
 This module demonstrates how to write DataStream elements to the local file system using Apache Flink.
 The `FileSink` connector is the standard way to write data to files.
 
-## Example
+The primary class in this module is:
+- `LocalFileSystemSinkConnectorExample.java`: Demonstrates writing plain text to a local directory.
+
+## Examples
+
+### Local File System Sink Example (Text)
+
+This example generates text lines and writes them into a local directory `/tmp/flink-output`.
 
 ```java
-FileSink<String> sink = FileSink
-    .forRowFormat(new Path("output"), new SimpleStringEncoder<String>("UTF-8"))
-    .withRollingPolicy(
-        DefaultRollingPolicy.builder()
-            .withRolloverInterval(Duration.ofMinutes(15))
-            .withInactivityInterval(Duration.ofMinutes(5))
-            .withMaxPartSize(MemorySize.ofMebibytes(1024))
-            .build())
-    .build();
-
-stream.sinkTo(sink);
+FileSink<String> fileSink = FileSink
+        .<String>forRowFormat(new Path(outputFilePath), new SimpleStringEncoder<>())
+        .withRollingPolicy(
+                DefaultRollingPolicy.builder()
+                        .withMaxPartSize(MemorySize.parse("250", MemorySize.MemoryUnit.BYTES))
+                        .withRolloverInterval(Duration.ofSeconds(30))
+                        .build()
+        )
+        .build();
 ```
+
+## Running the Examples
+
+1. Build the module:
+   ```sh
+   mvn clean install -DskipTests
+   ```
+
+2. Run the text example:
+   ```sh
+   mvn exec:java -Dexec.mainClass="io.github.jlmc.flink.sinks.LocalFileSystemSinkConnectorExample"
+   ```
 
 ## Documentation
 

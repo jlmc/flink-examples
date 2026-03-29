@@ -7,6 +7,8 @@ Data sinks consume DataStreams and forward them to files, sockets, external syst
 
 * [Socket Sink](socket-sink-connector): Consumes a DataStream and writes it to a socket.
 * [Local File System Sink](local-file-system-sink-connector): Writes DataStream elements to the local file system.
+* [CSV Sink](csv-sink-connector): Writes and reads DataStream elements in CSV format (local/remote).
+* [S3 Sink](s3-sink-connector): Writes DataStream elements to AWS S3 (simulated with MinIO).
 * [HDFS File System Sink](hdfs-file-system-sink-connector): Writes DataStream elements to HDFS.
 * [JDBC Sink](jdbc-sink-connector): Writes DataStream elements to a relational database using JDBC.
 * [Apache Kafka Sink](apache-kafka-sink-connector): Writes DataStream elements to an Apache Kafka topic.

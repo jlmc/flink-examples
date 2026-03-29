@@ -7,16 +7,18 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 
 import java.time.Instant;
 
-/// # SocketSinkConnector
-///
-/// ### Input socket in terminal
-/// ```sh
-/// nc -lk 9998
-/// ```
-/// ### output socket in terminal
-/// ```
-/// nc -lk 9999
-/// ```
+/**
+ * # SocketSinkConnector
+ *
+ * ### Input socket in terminal
+ * ```sh
+ * nc -lk 9998
+ * ```
+ * ### output socket in terminal
+ * ```
+ * nc -lk 9999
+ * ```
+ */
 public class SocketSinkConnector {
 
     public static void main(String[] args) throws Exception {
@@ -25,14 +27,7 @@ public class SocketSinkConnector {
 
 
         env.socketTextStream("localhost", 9998)
-                .map(value -> """
-                        
-                        {
-                            "value": "%s",
-                            "timestamp": "%s",
-                        }
-                        
-                        """.formatted(value, Instant.now()), Types.STRING)
+                .map(value -> String.format("\n{\n    \"value\": \"%s\",\n    \"timestamp\": \"%s\",\n}\n", value, Instant.now()), Types.STRING)
                 .writeToSocket("localhost", 9999, new SimpleStringSchema());
 
         env.execute("SocketSinkConnector Job");

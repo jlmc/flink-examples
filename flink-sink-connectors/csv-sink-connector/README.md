@@ -1,87 +1,79 @@
-# CSV Sink and Source Connector Examples
+# Flink CSV Sink Connector Example
 
-This module demonstrates how to work with CSV data in Apache Flink using `FileSink` for writing and `FileSource` with `CsvReaderFormat` for reading. It uses `JacksonCsvEncoder` from the common module to ensure robust and consistent CSV serialization.
+This example demonstrates how to use Apache Flink's `FileSink` to write data in CSV format to a local file system.
 
-The primary classes in this module are:
-- `CsvFileSinkConnectorExample.java`: Demonstrates writing structured data (POJOs) in CSV format.
-- `CsvFileSourceConnectorExample.java`: Demonstrates reading structured data (POJOs) in CSV format using `CsvReaderFormat`.
-- `PersonCsvFileSinkConnectorExample.java`: Demonstrates writing `Person` records (name, age) in CSV format.
-- `PersonCsvFileSourceConnectorExample.java`: Demonstrates reading `Person` records from a CSV file into POJOs.
+## Project Structure
 
-## Examples
+- `CsvSinkConnectorExample.java`: Defines the Flink Job that generates dummy patient data and writes it to CSV files.
+- `PatientCsvEncoder`: A custom `Encoder` implementation to format `Patient` objects as CSV lines.
+- `docker-compose.yaml`: Provisions a local Flink cluster (JobManager and TaskManager).
 
-### CSV File Sink Example
+## How to Run
 
-This example uses `FileSink` with `JacksonCsvEncoder` to write `Patient` POJOs to `/tmp/flink-csv-output` in proper CSV format.
+### 1. Build the Project
 
-```java
-FileSink<Patient> csvSink = FileSink
-        .forRowFormat(new Path(outputDirectory), new JacksonCsvEncoder<>(Patient.class))
-        .withBucketAssigner(new DateTimeBucketAssigner<>("yyyy-MM-dd-HH-mm"))
-        .withOutputFileConfig(OutputFileConfig.builder()
-                .withPartPrefix("patients")
-                .withPartSuffix(".csv")
-                .build())
-        .build();
+Use the provided script to build the shaded JAR using a Maven Docker image:
+
+```bash
+chmod +x build-jdk11.sh
+./build-jdk11.sh
 ```
 
-### CSV File Source Example
+### 2. Start the Environment
 
-This example uses `FileSource` and `CsvReaderFormat` to read `Patient` POJOs from `/tmp/flink-csv-output`.
+Bring up the Flink cluster:
 
-```java
-CsvReaderFormat<Patient> csvFormat = CsvReaderFormat.forPojo(Patient.class);
-
-FileSource<Patient> source = 
-        FileSource.forRecordStreamFormat(csvFormat, new Path(inputPath))
-                .monitorContinuously(Duration.ofSeconds(5))
-                .build();
+```bash
+docker-compose up -d
 ```
 
-### Person CSV File Examples
+### 3. Deploy the Job
 
-These examples demonstrate writing and reading `Person` objects (name, age) using `/tmp/flink-person-csv-output`.
+Submit the JAR to the Flink cluster:
 
-**Writing:**
-```java
-FileSink<Person> sink = FileSink
-        .forRowFormat(new Path(path), new JacksonCsvEncoder<>(Person.class))
-        .build();
+```bash
+chmod +x upload-job.sh
+./upload-job.sh
 ```
 
-**Reading:**
-```java
-CsvReaderFormat<Person> csvFormat = CsvReaderFormat.forPojo(Person.class);
-FileSource<Person> source = FileSource.forRecordStreamFormat(csvFormat, new Path(inputPath)).build();
+**Note:** The Job is configured to generate data indefinitely. To stop it, you can cancel the Job via the Flink UI (http://localhost:8081) or stop the container.
+
+## Verify Results
+
+The Job is configured to write files to `/tmp/flink-output/csv-sink` inside the TaskManager container. This directory is mapped to the local `./flink-output/csv-sink` directory on your host via a Docker volume.
+
+To list the generated files on the host:
+
+```bash
+ls -R ./flink-output/csv-sink
 ```
 
-## Running the Examples
+Or directly in the container:
 
-1. Build the module:
-   ```sh
-   mvn clean install -DskipTests
-   ```
+```bash
+docker-compose exec taskmanager ls -R /tmp/flink-output/csv-sink
+```
 
-2. Run the CSV sink example:
-   ```sh
-   mvn exec:java -Dexec.mainClass="io.github.jlmc.flink.sinks.CsvFileSinkConnectorExample"
-   ```
+To read the content of one of the generated files:
 
-3. Run the CSV source example:
-   ```sh
-   mvn exec:java -Dexec.mainClass="io.github.jlmc.flink.sinks.CsvFileSourceConnectorExample"
-   ```
+```bash
+docker-compose exec taskmanager cat /tmp/flink-output/csv-sink/<bucket-path>/<file-name>
+```
 
-4. Run the Person CSV sink example:
-   ```sh
-   mvn exec:java -Dexec.mainClass="io.github.jlmc.flink.sinks.PersonCsvFileSinkConnectorExample"
-   ```
+## Delivery Semantics and Checkpointing
 
-5. Run the Person CSV source example:
-   ```sh
-   mvn exec:java -Dexec.mainClass="io.github.jlmc.flink.sinks.PersonCsvFileSourceConnectorExample"
-   ```
+This example enables **Checkpointing** (`EXACTLY_ONCE`) every 5 seconds. The `FileSink` relies on checkpoints to finalize files.
 
-## Documentation
+### When is the file considered "Finished"?
 
-For more information, see the [Flink File System documentation](https://nightlies.apache.org/flink/flink-docs-release-1.20/docs/connectors/datastream/filesystem/).
+In Apache Flink, files generated by the `FileSink` go through three states:
+
+1.  **In-progress**: The file is currently being written to. It usually has a hidden prefix or suffix (e.g., `.part-uuid-0.inprogress`).
+2.  **Pending**: The file has been closed (reached size, time, or inactivity limit) but has not yet been confirmed by a checkpoint.
+3.  **Finished**: The checkpoint has successfully completed after the file entered the `pending` state. Flink renames the file to its final name (e.g., `part-uuid-0`).
+
+**Therefore, a file is only considered complete and safe for external reading when:**
+- The rolling policy (`RollingPolicy`) decides to close the current file (in this example, every 10 seconds of duration, 5 seconds of inactivity, or 10KB of data).
+- A Flink checkpoint is successfully finished after this closure.
+
+With the current configuration (5s checkpoint and aggressive rolling), you will see new finalized files appearing in the directory every few seconds.

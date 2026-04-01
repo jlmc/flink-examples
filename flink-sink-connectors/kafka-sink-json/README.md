@@ -67,7 +67,7 @@ chmod +x upload-job.sh
 Check the messages in the Kafka topic using the Kafka console consumer:
 
 ```bash
-docker exec -it kafka kafka-console-consumer --bootstrap-server localhost:9092 --topic json-topic --from-beginning --max-messages 10
+docker exec -it kafka kafka-console-consumer --bootstrap-server localhost:9092 --topic json-topic --from-beginning --property print.key=true --max-messages 10
 ```
 
 Alternatively, use the Kafka UI at [http://localhost:8085](http://localhost:8085).

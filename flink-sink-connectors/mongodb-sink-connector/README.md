@@ -57,6 +57,23 @@ To stop all services:
 docker-compose down
 ```
 
+## Delivery Semantics and Checkpointing
+
+This example enables Flink checkpointing to ensure reliable data delivery.
+
+### Checkpointing Configuration
+
+In the `MongoDBSinkConnectorExample.java`, checkpointing is enabled as follows:
+
+```java
+env.enableCheckpointing(10_000, CheckpointingMode.EXACTLY_ONCE);
+```
+
+### Why use Checkpoints?
+
+1.  **Reliability**: Checkpoints allow Flink to recover the state of the job in case of failure.
+2.  **Delivery Guarantees**: The `MongoSink` requires checkpointing to be enabled to provide "At-Least-Once" delivery guarantees. Checkpoints ensure that the sink's internal state is persisted, allowing it to recover correctly after a failure.
+
 ## Example Code
 
 The example uses the `MongoSink` with a custom `MongoSerializationSchema` to perform UPSERT operations using `ReplaceOneModel`.

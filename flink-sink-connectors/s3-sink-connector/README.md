@@ -32,6 +32,23 @@ docker-compose up -d
 - **Access Key:** `minio`
 - **Secret Key:** `minio123`
 
+## Delivery Semantics and Checkpointing
+
+This example enables Flink checkpointing to ensure reliable data delivery.
+
+### Checkpointing Configuration
+
+In the `S3SinkConnectorExample.java`, checkpointing is enabled as follows:
+
+```java
+env.enableCheckpointing(10_000, CheckpointingMode.EXACTLY_ONCE);
+```
+
+### Why use Checkpoints?
+
+1.  **Reliability**: Checkpoints allow Flink to recover the state of the job in case of failure.
+2.  **Delivery Guarantees**: The `FileSink` (used for S3) relies on Flink's checkpointing mechanism to provide "Exactly-Once" delivery guarantees. Data is written to in-progress files and only committed (renamed to their final name) when a checkpoint is successfully completed. Without checkpointing, the files would remain in an in-progress state and never be finalized.
+
 ## Running the Example
 
 The `S3SinkConnectorExample` class uses a data generator to produce `Patient` objects and write them to the `s3://flink-s3-bucket/output` path in proper CSV format using `JacksonCsvEncoder`.

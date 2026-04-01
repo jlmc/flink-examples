@@ -1,6 +1,7 @@
 package io.github.jlmc.flink.sinks.kafka;
 
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
+import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.connector.source.util.ratelimit.RateLimiterStrategy;
 import org.apache.flink.connector.datagen.source.DataGeneratorSource;
 import org.apache.flink.connector.kafka.sink.KafkaRecordSerializationSchema;
@@ -10,6 +11,7 @@ import org.apache.flink.formats.json.JsonSerializationSchema;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 
 import java.io.Serializable;
+import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
 /**
@@ -36,7 +38,9 @@ public class KafkaSinkJsonExample {
                 .setRecordSerializer(
                         KafkaRecordSerializationSchema.builder()
                                 .setTopic("json-topic")
-                                .setValueSerializationSchema(new JsonSerializationSchema<Patient>())
+                                .setKeySerializationSchema((SerializationSchema<Patient>) patient ->
+                                        String.valueOf(patient.id).getBytes(StandardCharsets.UTF_8))
+                                .setValueSerializationSchema(new JsonSerializationSchema<>())
                                 .build()
                 )
                 .build();

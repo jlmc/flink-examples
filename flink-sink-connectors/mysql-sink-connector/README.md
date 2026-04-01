@@ -58,6 +58,23 @@ To stop all services:
 docker-compose down
 ```
 
+## Delivery Semantics and Checkpointing
+
+This example enables Flink checkpointing to ensure reliable data delivery.
+
+### Checkpointing Configuration
+
+In the `MySQLSinkConnectorExample.java`, checkpointing is enabled as follows:
+
+```java
+env.enableCheckpointing(10_000, CheckpointingMode.EXACTLY_ONCE);
+```
+
+### Why use Checkpoints?
+
+1.  **Reliability**: Checkpoints allow Flink to recover the state of the job in case of failure.
+2.  **Delivery Guarantees**: The `JdbcSink` (used for MySQL) relies on checkpoints to manage transactions when operating in "At-Least-Once" or "Exactly-Once" modes. In "At-Least-Once" mode, checkpoints ensure that buffered records are committed and that the job can resume from a consistent state.
+
 ## Example Code
 
 The example uses the `JdbcSink` with `JdbcExecutionOptions` and `buildAtLeastOnce()`.

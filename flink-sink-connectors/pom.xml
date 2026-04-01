@@ -54,7 +54,11 @@
         <module>s3-sink-connector</module>
         <module>hdfs-file-system-sink-connector</module>
         <module>jdbc-sink-connector</module>
+        <module>mysql-sink-connector</module>
         <module>apache-kafka-sink-connector</module>
+        <module>kafka-sink-value-only</module>
+        <module>kafka-sink-key-value</module>
+        <module>kafka-sink-json</module>
         <module>mongodb-sink-connector</module>
         <module>custom-sink-connector</module>
         <module>csv-sink-connector</module>

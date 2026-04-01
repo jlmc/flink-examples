@@ -245,3 +245,4 @@ docker/volumes/mongo/data/**
 docker/volumes/localstack/data/**
 
 .volumes/
+flink-sink-connectors/s3-sink-connector/minio_data/

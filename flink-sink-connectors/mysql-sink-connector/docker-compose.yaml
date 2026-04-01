@@ -1,0 +1,64 @@
+services:
+  jobmanager:
+    image: apache/flink:1.20.3-scala_2.12-java11
+    container_name: jobmanager
+    ports:
+      - "8081:8081"
+    command: jobmanager
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+    networks:
+      - jdbc_network
+
+  taskmanager:
+    image: apache/flink:1.20.3-scala_2.12-java11
+    container_name: taskmanager
+    depends_on:
+      - jobmanager
+    command: taskmanager
+    scale: 1
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+        taskmanager.numberOfTaskSlots: 2
+    networks:
+      - jdbc_network
+
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    environment:
+      MYSQL_DATABASE: flink_db
+      MYSQL_USER: flink_user
+      MYSQL_PASSWORD: flink_password
+      MYSQL_ROOT_PASSWORD: root_password
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - jdbc_network
+
+  mysql_setup:
+    image: mysql:8.0
+    container_name: mysql_setup
+    depends_on:
+      mysql:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mysql -h mysql -u flink_user -pflink_password flink_db -e 'CREATE TABLE IF NOT EXISTS patients (id INT PRIMARY KEY, name VARCHAR(255), age INT);';
+      echo 'MySQL setup completed';
+      "
+    networks:
+      - jdbc_network
+
+networks:
+  jdbc_network:
+    driver: bridge

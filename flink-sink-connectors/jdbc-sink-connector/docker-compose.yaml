@@ -1,0 +1,64 @@
+services:
+  jobmanager:
+    image: apache/flink:1.20.3-scala_2.12-java11
+    container_name: jobmanager
+    ports:
+      - "8081:8081"
+    command: jobmanager
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+    networks:
+      - jdbc_network
+
+  taskmanager:
+    image: apache/flink:1.20.3-scala_2.12-java11
+    container_name: taskmanager
+    depends_on:
+      - jobmanager
+    command: taskmanager
+    scale: 1
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+        taskmanager.numberOfTaskSlots: 2
+    networks:
+      - jdbc_network
+
+  postgres:
+    image: postgres:16
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: flink_db
+      POSTGRES_USER: flink_user
+      POSTGRES_PASSWORD: flink_password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flink_user -d flink_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - jdbc_network
+
+  postgres_setup:
+    image: postgres:16
+    container_name: postgres_setup
+    depends_on:
+      postgres:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      export PGPASSWORD=flink_password;
+      psql -h postgres -U flink_user -d flink_db -c 'CREATE TABLE IF NOT EXISTS patients (id INT PRIMARY KEY, name VARCHAR(255), age INT);';
+      echo 'PostgreSQL setup completed';
+      "
+    networks:
+      - jdbc_network
+
+networks:
+  jdbc_network:
+    driver: bridge

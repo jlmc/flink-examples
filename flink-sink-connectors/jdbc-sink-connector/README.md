@@ -1,35 +1,81 @@
-# JDBC Sink Connector
+# Flink JDBC Sink Connector Example
 
-This module demonstrates how to write DataStream elements to a relational database using JDBC in Apache Flink.
-The `JdbcSink` is used for this purpose.
+This module provides an example of using the Flink JDBC Sink connector to write data to a PostgreSQL database.
 
-## Example
+## Prerequisites
 
-```java
-JdbcSink.sink(
-    "INSERT INTO my_table (id, value) VALUES (?, ?)",
-    (statement, item) -> {
-        statement.setInt(1, item.id);
-        statement.setString(2, item.value);
-    },
-    JdbcExecutionOptions.builder()
-        .withBatchSize(1000)
-        .withBatchIntervalMs(200)
-        .withMaxRetries(5)
-        .build(),
-    new JdbcConnectionOptions.JdbcConnectionOptionsBuilder()
-        .withUrl("jdbc:postgresql://localhost:5432/my_db")
-        .withDriverName("org.postgresql.Driver")
-        .withUsername("my_user")
-        .withPassword("my_password")
-        .build()
-);
+- Docker and Docker Compose
+- JDK 11 (or use the provided build script which uses Docker)
+- Maven
+
+## How to Run
+
+### 1. Build the project
+
+You can build the project using the provided script which uses a Docker container with Maven and JDK 11:
+
+```bash
+chmod +x build-jdk11.sh
+./build-jdk11.sh
 ```
 
-## Running the Example
+### 2. Start the infrastructure
 
-Make sure you have a database running.
-For a local PostgreSQL setup, refer to the [Docker Compose Services Guide](../../DOCKER-COMPOSE-SERVICES.md).
+Start the Flink cluster and PostgreSQL database using Docker Compose:
+
+```bash
+docker-compose up -d
+```
+
+This will start:
+- `jobmanager` at [http://localhost:8081](http://localhost:8081)
+- `taskmanager`
+- `postgres` (with database `flink_db`, user `flink_user`, and password `flink_password`)
+- `postgres_setup` (a temporary container to create the `patients` table)
+
+### 3. Deploy the Flink job
+
+Upload and run the shaded JAR:
+
+```bash
+chmod +x upload-job.sh
+./upload-job.sh
+```
+
+### 4. Verify the data
+
+You can check the data in PostgreSQL:
+
+```bash
+docker exec -it postgres psql -U flink_user -d flink_db -c "SELECT * FROM patients LIMIT 10;"
+```
+
+### 5. Stop the infrastructure
+
+To stop all services:
+
+```bash
+docker-compose down
+```
+
+## Example Code
+
+The example uses `JdbcSink.sink` with an **UPSERT** (Insert or Update) SQL statement:
+
+```java
+String sql = "INSERT INTO patients (id, name, age) VALUES (?, ?, ?) " +
+             "ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, age = EXCLUDED.age";
+
+JdbcSink.sink(
+    sql,
+    (statement, patient) -> {
+        statement.setInt(1, patient.id);
+        statement.setString(2, patient.name);
+        statement.setInt(3, patient.age);
+    },
+    // ... execution and connection options
+);
+```
 
 ## Documentation
 

@@ -1,0 +1,15 @@
+[
+  {
+    "httpRequest": {
+      "method": "POST",
+      "path": "/api/patients"
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "body": "{\"status\":\"success\"}",
+      "headers": {
+        "Content-Type": [ "application/json" ]
+      }
+    }
+  }
+]

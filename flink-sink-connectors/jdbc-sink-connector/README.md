@@ -60,21 +60,66 @@ docker-compose down
 
 ## Example Code
 
-The example uses `JdbcSink.sink` with an **UPSERT** (Insert or Update) SQL statement:
+### 1. New Sink API (Recommended - SinkV2)
+
+The recommended way to use the JDBC Sink is via the `Sink` (SinkV2) interface using `JdbcSink.builder()`:
 
 ```java
 String sql = "INSERT INTO patients (id, name, age) VALUES (?, ?, ?) " +
              "ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, age = EXCLUDED.age";
 
-JdbcSink.sink(
-    sql,
-    (statement, patient) -> {
-        statement.setInt(1, patient.id);
-        statement.setString(2, patient.name);
-        statement.setInt(3, patient.age);
-    },
-    // ... execution and connection options
+Sink<Patient> jdbcSink = JdbcSink.<Patient>builder()
+        .withQueryStatement(sql, (statement, patient) -> {
+            statement.setInt(1, patient.id);
+            statement.setString(2, patient.name);
+            statement.setInt(3, patient.age);
+        })
+        .withExecutionOptions(JdbcExecutionOptions.builder()
+                .withBatchSize(100)
+                .withBatchIntervalMs(200)
+                .withMaxRetries(5)
+                .build())
+        .buildAtLeastOnce(new JdbcConnectionOptions.JdbcConnectionOptionsBuilder()
+                .withUrl("jdbc:postgresql://postgres:5432/flink_db")
+                .withDriverName("org.postgresql.Driver")
+                .withUsername("flink_user")
+                .withPassword("flink_password")
+                .build());
+
+env.fromSource(source, WatermarkStrategy.noWatermarks(), "jdbc-data-generator")
+   .sinkTo(jdbcSink);
+```
+
+### 2. Deprecated SinkFunction API
+
+The older way using the `SinkFunction` interface (via `JdbcSink.sink()`) is still available but deprecated:
+
+```java
+String sql = "INSERT INTO patients (id, name, age) VALUES (?, ?, ?) " +
+             "ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, age = EXCLUDED.age";
+
+SinkFunction<Patient> jdbcSink = JdbcSink.sink(
+        sql,
+        (statement, patient) -> {
+            statement.setInt(1, patient.id);
+            statement.setString(2, patient.name);
+            statement.setInt(3, patient.age);
+        },
+        JdbcExecutionOptions.builder()
+                .withBatchSize(100)
+                .withBatchIntervalMs(200)
+                .withMaxRetries(5)
+                .build(),
+        new JdbcConnectionOptions.JdbcConnectionOptionsBuilder()
+                .withUrl("jdbc:postgresql://postgres:5432/flink_db")
+                .withDriverName("org.postgresql.Driver")
+                .withUsername("flink_user")
+                .withPassword("flink_password")
+                .build()
 );
+
+env.fromSource(source, WatermarkStrategy.noWatermarks(), "jdbc-data-generator")
+   .addSink(jdbcSink);
 ```
 
 ## Documentation

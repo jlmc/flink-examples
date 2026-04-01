@@ -4,12 +4,12 @@ import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.typeinfo.Types;
 import org.apache.flink.api.connector.source.util.ratelimit.RateLimiterStrategy;
 import org.apache.flink.connector.datagen.source.DataGeneratorSource;
+import org.apache.flink.api.connector.sink2.Sink;
 import org.apache.flink.connector.jdbc.JdbcConnectionOptions;
 import org.apache.flink.connector.jdbc.JdbcExecutionOptions;
-import org.apache.flink.connector.jdbc.JdbcSink;
 import org.apache.flink.connector.jdbc.JdbcStatementBuilder;
+import org.apache.flink.connector.jdbc.sink.JdbcSink;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.api.functions.sink.SinkFunction;
 
 import java.io.Serializable;
 import java.sql.PreparedStatement;
@@ -42,31 +42,29 @@ public class JDBCSinkConnectorExample {
         final String sql = "INSERT INTO patients (id, name, age) VALUES (?, ?, ?) " +
                 "ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, age = EXCLUDED.age";
 
-        SinkFunction<Patient> jdbcSink = JdbcSink.sink(
-                sql,
-                new JdbcStatementBuilder<Patient>() {
+        Sink<Patient> jdbcSink = JdbcSink.<Patient>builder()
+                .withQueryStatement(sql, new JdbcStatementBuilder<Patient>() {
                     @Override
                     public void accept(PreparedStatement statement, Patient patient) throws SQLException {
                         statement.setInt(1, patient.id);
                         statement.setString(2, patient.name);
                         statement.setInt(3, patient.age);
                     }
-                },
-                JdbcExecutionOptions.builder()
+                })
+                .withExecutionOptions(JdbcExecutionOptions.builder()
                         .withBatchSize(100)
                         .withBatchIntervalMs(200)
                         .withMaxRetries(5)
-                        .build(),
-                new JdbcConnectionOptions.JdbcConnectionOptionsBuilder()
+                        .build())
+                .buildAtLeastOnce(new JdbcConnectionOptions.JdbcConnectionOptionsBuilder()
                         .withUrl("jdbc:postgresql://postgres:5432/flink_db")
                         .withDriverName("org.postgresql.Driver")
                         .withUsername("flink_user")
                         .withPassword("flink_password")
-                        .build()
-        );
+                        .build());
 
         env.fromSource(source, WatermarkStrategy.noWatermarks(), "jdbc-data-generator")
-                .addSink(jdbcSink);
+                .sinkTo(jdbcSink);
 
         env.execute("Flink JDBC Sink Connector Example (PostgreSQL)");
     }

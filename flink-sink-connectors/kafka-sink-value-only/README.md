@@ -8,6 +8,27 @@ This module provides an example of using the Flink Kafka Sink connector to write
 - JDK 11 (or use the provided build script which uses Docker)
 - Maven
 
+## Delivery Semantics and Checkpointing
+
+This example enables Flink checkpointing to ensure reliable data delivery.
+
+### Checkpointing Configuration
+
+In the `KafkaSinkValueOnlyExample.java`, checkpointing is enabled as follows:
+
+```java
+env.enableCheckpointing(10_000, CheckpointingMode.EXACTLY_ONCE);
+```
+
+### Why use Checkpoints?
+
+1.  **Reliability**: Checkpoints allow Flink to recover the state of the job in case of failure.
+2.  **Delivery Guarantees**:
+    *   **At-Least-Once**: By default, the `KafkaSink` provides at-least-once delivery guarantees if checkpointing is enabled. This means that in case of a failure, some messages might be redelivered to Kafka, but no messages will be lost.
+    *   **Exactly-Once**: To achieve exactly-once semantics with Kafka, the sink uses the Kafka Transactions API. This requires setting the `DeliveryGuarantee.EXACTLY_ONCE` in the sink builder and ensures that even in the event of a failure, each message is written to the destination topic exactly once.
+
+In this example, we use `EXACTLY_ONCE` checkpointing mode at the environment level, which is a prerequisite for any consistent delivery guarantee.
+
 ## How to Run
 
 ### 1. Build the project

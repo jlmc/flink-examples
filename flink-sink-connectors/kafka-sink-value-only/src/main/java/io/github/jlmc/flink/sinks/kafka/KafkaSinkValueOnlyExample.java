@@ -6,6 +6,7 @@ import org.apache.flink.api.connector.source.util.ratelimit.RateLimiterStrategy;
 import org.apache.flink.connector.datagen.source.DataGeneratorSource;
 import org.apache.flink.connector.kafka.sink.KafkaRecordSerializationSchema;
 import org.apache.flink.connector.kafka.sink.KafkaSink;
+import org.apache.flink.core.execution.CheckpointingMode;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 
 /**
@@ -15,6 +16,10 @@ public class KafkaSinkValueOnlyExample {
 
     public static void main(String[] args) throws Exception {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+
+        // Enable Flink checkpointing every 10 seconds (10,000 ms)
+        // This is crucial for At-Least-Once or Exactly-Once delivery guarantees.
+        env.enableCheckpointing(10_000, CheckpointingMode.EXACTLY_ONCE);
 
         DataGeneratorSource<String> source = new DataGeneratorSource<>(
                 value -> "Message-" + value,

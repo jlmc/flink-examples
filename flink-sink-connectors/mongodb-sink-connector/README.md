@@ -1,30 +1,89 @@
-# MongoDB Sink Connector
+# Flink MongoDB Sink Connector Example
 
-This module demonstrates how to write DataStream elements to a MongoDB collection using Apache Flink.
-The `MongoSink` connector is used for this purpose.
+This module provides an example of using the Flink MongoDB Sink connector to write data to a MongoDB database.
 
-## Example
+## Prerequisites
 
-```java
-MongoSink<String> sink = MongoSink.<String>builder()
-    .setUri("mongodb://localhost:27017")
-    .setDatabase("my_db")
-    .setCollection("my_collection")
-    .setSerializationSchema(new MongoSerializationSchema<String>() {
-        @Override
-        public WriteModel<BsonDocument> serialize(String element, SerializationContext context) {
-            return new InsertOneModel<>(BsonDocument.parse(element));
-        }
-    })
-    .build();
+- Docker and Docker Compose
+- JDK 11 (or use the provided build script which uses Docker)
+- Maven
 
-stream.sinkTo(sink);
+## How to Run
+
+### 1. Build the project
+
+You can build the project using the provided script which uses a Docker container with Maven and JDK 11:
+
+```bash
+chmod +x build-jdk11.sh
+./build-jdk11.sh
 ```
 
-## Running the Example
+### 2. Start the infrastructure
 
-Make sure you have a MongoDB instance running.
-For a local MongoDB setup, refer to the [Docker Compose Services Guide](../../DOCKER-COMPOSE-SERVICES.md).
+Start the Flink cluster and MongoDB database using Docker Compose:
+
+```bash
+docker-compose up -d
+```
+
+This will start:
+- `jobmanager` at [http://localhost:8081](http://localhost:8081)
+- `taskmanager`
+- `mongodb` (accessible at `localhost:27017`)
+
+### 3. Deploy the Flink job
+
+Upload and run the shaded JAR:
+
+```bash
+chmod +x upload-job.sh
+./upload-job.sh
+```
+
+### 4. Verify the data
+
+You can check the data in MongoDB using the `mongosh` inside the container:
+
+```bash
+docker exec -it mongodb mongosh flink_db --eval "db.patients.find().limit(10)"
+```
+
+### 5. Stop the infrastructure
+
+To stop all services:
+
+```bash
+docker-compose down
+```
+
+## Example Code
+
+The example uses the `MongoSink` with a custom `MongoSerializationSchema` to perform UPSERT operations using `ReplaceOneModel`.
+
+```java
+MongoSink<Patient> mongoSink = MongoSink.<Patient>builder()
+        .setUri("mongodb://mongodb:27017")
+        .setDatabase("flink_db")
+        .setCollection("patients")
+        .setSerializationSchema(new MongoSerializationSchema<Patient>() {
+            @Override
+            public WriteModel<BsonDocument> serialize(Patient patient, MongoSinkContext context) {
+                BsonDocument document = new BsonDocument();
+                document.append("id", new BsonInt32(patient.id));
+                document.append("name", new BsonString(patient.name));
+                document.append("age", new BsonInt32(patient.age));
+
+                // UPSERT logic: replace document if ID matches
+                BsonDocument filter = new BsonDocument("id", new BsonInt32(patient.id));
+                return new ReplaceOneModel<>(filter, document, new ReplaceOptions().upsert(true));
+            }
+        })
+        .build();
+
+env.fromSource(source, WatermarkStrategy.noWatermarks(), "mongodb-data-generator")
+   .sinkTo(mongoSink);
+```
 
 ## Documentation
 

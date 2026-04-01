@@ -55,7 +55,6 @@
         <module>hdfs-file-system-sink-connector</module>
         <module>jdbc-sink-connector</module>
         <module>mysql-sink-connector</module>
-        <module>apache-kafka-sink-connector</module>
         <module>kafka-sink-value-only</module>
         <module>kafka-sink-key-value</module>
         <module>kafka-sink-json</module>

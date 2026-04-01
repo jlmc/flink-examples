@@ -58,6 +58,30 @@ To stop all services:
 docker-compose down
 ```
 
+## Delivery Semantics and Transaction Control
+
+The Flink JDBC Sink supports two delivery semantics:
+
+### 1. At-Least-Once (Default)
+In this mode, the sink guarantees that each record is written at least once to the database. It uses regular JDBC connections and manages transactions based on the `JdbcExecutionOptions`:
+- **Batch Size (`withBatchSize`)**: The number of records to buffer before triggering a commit.
+- **Batch Interval (`withBatchIntervalMs`)**: The maximum time to wait before triggering a commit, even if the batch size hasn't been reached.
+- **Max Retries (`withMaxRetries`)**: The number of times to retry a failed batch commit.
+
+This mode is used via `buildAtLeastOnce()` and is generally more performant as it doesn't require XA transactions.
+
+### 2. Exactly-Once
+To achieve exactly-once semantics, the sink uses the [Two-Phase Commit (2PC)](https://en.wikipedia.org/wiki/Two-phase_commit_protocol) protocol. This requires:
+- **XA-compliant Database**: The target database (like PostgreSQL) must support XA transactions.
+- **XADataSource**: You must provide a `SerializableSupplier<XADataSource>`.
+- **Flink Checkpointing**: Checkpointing must be enabled in the `StreamExecutionEnvironment`.
+
+In this mode, transactions are tied to Flink checkpoints. A transaction is started at the beginning of a checkpoint and prepared when the checkpoint completes. It is finally committed only when the checkpoint is successfully acknowledged by the JobManager.
+
+Use `buildExactlyOnce()` to enable this mode.
+
+---
+
 ## Example Code
 
 ### 1. New Sink API (Recommended - SinkV2)

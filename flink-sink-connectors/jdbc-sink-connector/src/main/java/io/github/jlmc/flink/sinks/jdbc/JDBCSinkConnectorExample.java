@@ -9,6 +9,7 @@ import org.apache.flink.connector.jdbc.JdbcConnectionOptions;
 import org.apache.flink.connector.jdbc.JdbcExecutionOptions;
 import org.apache.flink.connector.jdbc.JdbcStatementBuilder;
 import org.apache.flink.connector.jdbc.sink.JdbcSink;
+import org.apache.flink.core.execution.CheckpointingMode;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 
 import java.io.Serializable;
@@ -29,6 +30,9 @@ public class JDBCSinkConnectorExample {
 
     public static void main(String[] args) throws Exception {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+
+        // Enable checkpointing for at-least-once or exactly-once semantics
+        env.enableCheckpointing(10_000, CheckpointingMode.EXACTLY_ONCE);
 
         // Data Generator Source producing Patient objects
         // Using a limited range of IDs (0-9) to demonstrate UPSERT (Insert or Update)
@@ -62,6 +66,31 @@ public class JDBCSinkConnectorExample {
                         .withUsername("flink_user")
                         .withPassword("flink_password")
                         .build());
+
+        // Note: For Exactly-Once delivery semantics, PostgreSQL must support XA transactions
+        // and you would use buildExactlyOnce() with an XADataSource:
+        /*
+        Sink<Patient> jdbcExactlyOnceSink = JdbcSink.<Patient>builder()
+                .withQueryStatement(sql, (statement, patient) -> {
+                    statement.setInt(1, patient.id);
+                    statement.setString(2, patient.name);
+                    statement.setInt(3, patient.age);
+                })
+                .withExecutionOptions(JdbcExecutionOptions.builder()
+                        .withBatchSize(100)
+                        .withBatchIntervalMs(200)
+                        .build())
+                .buildExactlyOnce(
+                        org.apache.flink.connector.jdbc.JdbcExactlyOnceOptions.defaults(),
+                        () -> {
+                            org.postgresql.xa.PGXADataSource xaDataSource = new org.postgresql.xa.PGXADataSource();
+                            xaDataSource.setUrl("jdbc:postgresql://postgres:5432/flink_db");
+                            xaDataSource.setUser("flink_user");
+                            xaDataSource.setPassword("flink_password");
+                            return xaDataSource;
+                        }
+                );
+        */
 
         env.fromSource(source, WatermarkStrategy.noWatermarks(), "jdbc-data-generator")
                 .sinkTo(jdbcSink);

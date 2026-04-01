@@ -1,0 +1,4 @@
+dfs_webhdfs_enabled: true
+dfs_namenode_name_dir: file:///var/lib/hadoop-hdfs/cache/hdfs/dfs/name
+dfs_permissions_enabled: false
+dfs_datanode_data_dir: file:///var/lib/hadoop-hdfs/cache/hdfs/dfs/data

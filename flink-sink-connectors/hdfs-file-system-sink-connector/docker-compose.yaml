@@ -1,0 +1,59 @@
+services:
+  namenode:
+    image: apache/hadoop:3.3.6
+    container_name: namenode
+    hostname: namenode
+    command: ["hdfs", "namenode"]
+    ports:
+      - "9870:9870"
+      - "9000:9000"
+    env_file:
+      - ./hadoop.env
+    volumes:
+      - ./hadoop-data/namenode:/var/lib/hadoop-hdfs/cache/hdfs/dfs/name
+      - ./hadoop-conf:/opt/hadoop/etc/hadoop
+
+  datanode:
+    image: apache/hadoop:3.3.6
+    container_name: datanode
+    hostname: datanode
+    command: ["hdfs", "datanode"]
+    env_file:
+      - ./hadoop.env
+    depends_on:
+      - namenode
+    volumes:
+      - ./hadoop-data/datanode:/var/lib/hadoop-hdfs/cache/hdfs/dfs/data
+      - ./hadoop-conf:/opt/hadoop/etc/hadoop
+
+  jobmanager:
+    image: apache/flink:1.20.3-scala_2.12-java11
+    container_name: jobmanager
+    ports:
+      - "8081:8081"
+    command: jobmanager
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+      - HADOOP_CONF_DIR=/opt/hadoop/etc/hadoop
+    volumes:
+      - ./hadoop-conf:/opt/hadoop/etc/hadoop
+    depends_on:
+      - namenode
+
+  taskmanager:
+    image: apache/flink:1.20.3-scala_2.12-java11
+    container_name: taskmanager
+    depends_on:
+      - jobmanager
+      - datanode
+    command: taskmanager
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+        taskmanager.numberOfTaskSlots: 2
+      - HADOOP_CONF_DIR=/opt/hadoop/etc/hadoop
+    volumes:
+      - ./hadoop-conf:/opt/hadoop/etc/hadoop

@@ -68,7 +68,14 @@ For robust stream processing, Flink provides:
 
 ## How to Run
 
-Each sub-module contains its own examples. Refer to the specific README in each directory for execution details.
+This project uses **Docker Compose** to manage the Flink and Kafka infrastructure.
+
+Each sub-module contains:
+- A `docker-compose.yaml` to spin up the environment.
+- An `upload-job.sh` script to build and submit the Flink job.
+- A `submit-events.sh` script to send test JSON events to Kafka.
+
+Refer to the specific README in each directory for execution details.
 
 ---
 

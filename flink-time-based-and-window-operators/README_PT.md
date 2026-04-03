@@ -68,7 +68,14 @@ Para um processamento de fluxo robusto, o Flink fornece:
 
 ## Como Executar
 
-Cada sub-módulo contém os seus próprios exemplos. Consulte o README específico em cada diretório para detalhes de execução.
+Este projeto utiliza o **Docker Compose** para gerir a infraestrutura de Flink e Kafka.
+
+Cada sub-módulo contém:
+- Um `docker-compose.yaml` para subir o ambiente.
+- Um script `upload-job.sh` para construir e submeter o job ao Flink.
+- Um script `submit-events.sh` para enviar eventos JSON de teste ao Kafka.
+
+Consulte o README específico em cada diretório para detalhes de execução.
 
 ---
 

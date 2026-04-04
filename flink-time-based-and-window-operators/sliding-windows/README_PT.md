@@ -34,6 +34,21 @@ Neste exemplo, cada tentativa de login falhada será processada em **seis janela
 
 ---
 
+## Configurações de Produção
+
+Para garantir a robustez e o desempenho em ambientes reais, o exemplo foi atualizado com as seguintes configurações:
+
+- **Paralelismo**: O paralelismo do job pode ser configurado via linha de comando (`--parallelism`). O valor padrão é 1, mas para ambientes com maior carga, pode ser aumentado conforme os recursos do cluster Flink.
+- **Checkpoints**: Os checkpoints estão habilitados para garantir a tolerância a falhas (Fault Tolerance) e semântica **Exactly-Once**.
+  - O intervalo de checkpoint pode ser ajustado com `--checkpoint.interval` (padrão: 10 segundos).
+  - **Otimização de Latência**: Para evitar que o checkpoint limite a geração de alertas, ativamos o **Unaligned Checkpointing**. Isso permite que as barreiras de checkpoint ultrapassem os dados em buffer, reduzindo drasticamente a latência sob carga alta (*backpressure*).
+  - **Pausa Mínima**: Configurado com 5 segundos de pausa mínima entre checkpoints para garantir que o sistema tenha tempo para processar dados reais entre as operações de estado.
+  - Modo: `EXACTLY_ONCE`.
+
+> **Dica de Performance**: Se a latência for crítica e pequenas duplicações de alertas forem aceitáveis, considere aumentar o intervalo de checkpoint (ex: 1 minuto) ou usar `AT_LEAST_ONCE` para reduzir o overhead de alinhamento.
+
+---
+
 ## Como Executar
 
 1.  **Iniciar a Infraestrutura**:

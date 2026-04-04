@@ -23,8 +23,9 @@ if echo "$RESPONSE" | grep -q '"status":"success"'; then
     
     echo "Running the job..."
     # Prepare program arguments
-    ARGS="--bootstrap.servers kafka:19092 --input.topic access-attempts --output.topic access-alerts"
-    
+    #ARGS="--bootstrap.servers kafka:19092 --input.topic access-attempts --output.topic access-alerts --parallelism 2 --checkpoint.interval 30000"
+    ARGS="--bootstrap.servers kafka:19092 --input.topic access-attempts --output.topic access-alerts --parallelism 2 --checkpoint.interval 5000"
+
     RUN_RESPONSE=$(curl -s -X POST "http://localhost:8081/jars/$JAR_ID/run" \
         -H "Content-Type: application/json" \
         -d "{\"programArgs\": \"$ARGS\"}")

@@ -34,4 +34,10 @@ send_event "user-C" false
 send_event "user-C" false
 send_event "user-C" false
 
+# IMPORTANT: Send a final event some seconds later to "push" the watermark
+# and close the last sliding windows.
+echo "Waiting 5 seconds to send flush event..."
+sleep 5
+send_event "flush-user" true
+
 echo "Done."

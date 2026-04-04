@@ -20,7 +20,6 @@
         <maven.compiler.release>${java.version}</maven.compiler.release>
         <log4j-slf4j-impl.version>2.23.1</log4j-slf4j-impl.version>
         <slf4j-api.version>1.7.36</slf4j-api.version>
-        <jackson.version>2.15.2</jackson.version>
     </properties>
 
 
@@ -42,18 +41,13 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.flink</groupId>
-                <artifactId>flink-json</artifactId>
+                <artifactId>flink-connector-base</artifactId>
                 <version>${flink.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-databind</artifactId>
-                <version>${jackson.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.datatype</groupId>
-                <artifactId>jackson-datatype-jsr310</artifactId>
-                <version>${jackson.version}</version>
+                <groupId>org.apache.flink</groupId>
+                <artifactId>flink-json</artifactId>
+                <version>${flink.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

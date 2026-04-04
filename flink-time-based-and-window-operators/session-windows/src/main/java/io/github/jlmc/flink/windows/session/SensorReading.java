@@ -1,6 +1,5 @@
 package io.github.jlmc.flink.windows.session;
-
-import com.fasterxml.jackson.annotation.JsonFormat;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.annotation.JsonFormat;
 import java.time.Instant;
 
 public class SensorReading {

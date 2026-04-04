@@ -4,6 +4,8 @@ import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.connector.kafka.source.KafkaSource;
 import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer;
 import org.apache.flink.formats.json.JsonDeserializationSchema;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.windowing.assigners.EventTimeSessionWindows;
@@ -18,12 +20,23 @@ public class SessionWindowKafkaExample {
     public static void main(String[] args) throws Exception {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
+        org.apache.flink.api.java.utils.ParameterTool parameters = org.apache.flink.api.java.utils.ParameterTool.fromArgs(args);
+        String bootstrapServers = parameters.get("bootstrap.servers", "localhost:9092");
+        String inputTopic = parameters.get("input.topic", "sensors-data");
+
         KafkaSource<SensorReading> source = KafkaSource.<SensorReading>builder()
-                .setBootstrapServers("kafka:19092")
-                .setTopics("sensors-data")
+                .setBootstrapServers(bootstrapServers)
+                .setTopics(inputTopic)
                 .setGroupId("session-windows-group")
                 .setStartingOffsets(OffsetsInitializer.latest())
-                .setValueOnlyDeserializer(new JsonDeserializationSchema<>(SensorReading.class))
+                .setValueOnlyDeserializer(new JsonDeserializationSchema<>(
+                        SensorReading.class,
+                        () -> {
+                            ObjectMapper objectMapper = new ObjectMapper();
+                            objectMapper.registerModule(new JavaTimeModule());
+                            return objectMapper;
+                        }
+                ))
                 .build();
 
         WatermarkStrategy<SensorReading> watermarkStrategy = WatermarkStrategy

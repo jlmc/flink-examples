@@ -4,6 +4,7 @@ import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.functions.AggregateFunction;
 import org.apache.flink.api.common.functions.OpenContext;
 import org.apache.flink.api.common.serialization.SerializationSchema;
+import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.connector.base.DeliveryGuarantee;
 import org.apache.flink.connector.kafka.sink.KafkaRecordSerializationSchema;
 import org.apache.flink.connector.kafka.sink.KafkaSink;
@@ -11,6 +12,8 @@ import org.apache.flink.connector.kafka.source.KafkaSource;
 import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer;
 import org.apache.flink.formats.json.JsonDeserializationSchema;
 import org.apache.flink.formats.json.JsonSerializationSchema;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction;
@@ -30,9 +33,10 @@ public class TumblingWindowKafkaExample {
     public static void main(String[] args) throws Exception {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
-        String bootstrapServers = "localhost:9092";
-        String inputTopic = "sensors-data";
-        String outputTopic = "sensors-avg-data";
+        ParameterTool parameters = ParameterTool.fromArgs(args);
+        String bootstrapServers = parameters.get("bootstrap.servers", "localhost:9092");
+        String inputTopic = parameters.get("input.topic", "sensors-data");
+        String outputTopic = parameters.get("output.topic", "sensors-avg-data");
 
         // Kafka Source setup
         KafkaSource<SensorReading> source = KafkaSource.<SensorReading>builder()
@@ -40,11 +44,24 @@ public class TumblingWindowKafkaExample {
                 .setTopics(inputTopic)
                 .setGroupId("tumbling-windows-group")
                 .setStartingOffsets(OffsetsInitializer.latest())
-                .setValueOnlyDeserializer(new JsonDeserializationSchema<>(SensorReading.class))
+                .setValueOnlyDeserializer(new JsonDeserializationSchema<>(
+                        SensorReading.class,
+                        () -> {
+                            ObjectMapper objectMapper = new ObjectMapper();
+                            objectMapper.registerModule(new JavaTimeModule());
+                            return objectMapper;
+                        }
+                ))
                 .build();
 
         // Kafka Sink setup
-        SerializationSchema<WindowResult> serializationSchema = new JsonSerializationSchema<>();
+        JsonSerializationSchema<WindowResult> serializationSchema = new JsonSerializationSchema<>(
+                () -> {
+                    ObjectMapper objectMapper = new ObjectMapper();
+                    objectMapper.registerModule(new JavaTimeModule());
+                    return objectMapper;
+                }
+        );
         KafkaSink<WindowResult> sink = KafkaSink.<WindowResult>builder()
                 .setBootstrapServers(bootstrapServers)
                 .setRecordSerializer(

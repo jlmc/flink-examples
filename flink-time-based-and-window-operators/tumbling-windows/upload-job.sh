@@ -22,7 +22,12 @@ if echo "$RESPONSE" | grep -q '"status":"success"'; then
     echo "Successfully uploaded JAR. JAR ID: $JAR_ID"
     
     echo "Running the job..."
-    RUN_RESPONSE=$(curl -s -X POST "http://localhost:8081/jars/$JAR_ID/run")
+    # Prepare program arguments (example: --bootstrap.servers kafka:19092 --input.topic sensors-data --output.topic sensors-avg-data)
+    ARGS="--bootstrap.servers kafka:19092 --input.topic sensors-data --output.topic sensors-avg-data"
+    
+    RUN_RESPONSE=$(curl -s -X POST "http://localhost:8081/jars/$JAR_ID/run" \
+        -H "Content-Type: application/json" \
+        -d "{\"programArgs\": \"$ARGS\"}")
     
     if echo "$RUN_RESPONSE" | grep -q '"jobid"'; then
         JOB_ID=$(echo "$RUN_RESPONSE" | sed -n 's/.*"jobid":"\([^"]*\)".*/\1/p')

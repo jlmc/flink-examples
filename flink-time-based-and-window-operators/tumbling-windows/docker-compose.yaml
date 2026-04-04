@@ -1,6 +1,7 @@
 services:
   jobmanager:
-    image: apache/flink:1.20.3-scala_2.12-java11
+    #image: apache/flink:1.20.3-scala_2.12-java11
+    image: flink:1.20.3-java17
     container_name: jobmanager
     ports:
       - "8081:8081"
@@ -13,7 +14,8 @@ services:
       - kafka_network
 
   taskmanager:
-    image: apache/flink:1.20.3-scala_2.12-java11
+    #image: apache/flink:1.20.3-scala_2.12-java11
+    image: flink:1.20.3-java17
     container_name: taskmanager
     depends_on:
       - jobmanager

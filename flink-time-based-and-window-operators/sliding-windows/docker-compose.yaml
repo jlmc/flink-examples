@@ -63,7 +63,12 @@ services:
   kafka-init:
     image: confluentinc/cp-kafka:7.7.2
     container_name: kafka-init
-    command: [ "/bin/bash", "-c", "/usr/bin/kafka-topics --create --topic sensors-data --bootstrap-server kafka:19092 --partitions 1 --replication-factor 1" ]
+    command:
+      - /bin/bash
+      - -c
+      - |
+        /usr/bin/kafka-topics --create --if-not-exists --topic access-attempts --bootstrap-server kafka:19092 --partitions 1 --replication-factor 1
+        /usr/bin/kafka-topics --create --if-not-exists --topic access-alerts --bootstrap-server kafka:19092 --partitions 1 --replication-factor 1
     depends_on:
       kafka:
         condition: service_healthy

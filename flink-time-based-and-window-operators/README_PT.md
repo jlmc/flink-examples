@@ -39,6 +39,12 @@ Antes de realizar uma operação de janela, deve especificar se o fluxo deve ter
 
 ## Atribuidores de Janela (Window Assigners)
 
+| Relação | Nome | Comportamento |
+| :--- | :--- | :--- |
+| **Slide = Size** | Tumbling Window | Janelas fixas, sem sobreposição. Cada evento é processado 1 vez. |
+| **Slide < Size** | Sliding Window | Sobreposição. Cada evento é processado `Size / Slide` vezes. (Ex: 30s/5s = 6 vezes). |
+| **Slide > Size** | Sampling Window | Gaps. Alguns dados nunca serão processados (não recomendado para segurança). |
+
 1.  **Janelas Fixas (Tumbling Windows)**: Tamanho fixo, sem sobreposição. Ideais para relatórios horários ou diários.
 2.  **Janelas Deslizantes (Sliding Windows)**: Tamanho fixo, mas deslizantes. Úteis para análise de tendências em tempo real (ex: "últimos 5 minutos de dados, atualizados a cada 1 minuto").
 3.  **Janelas de Sessão (Session Windows)**: Baseadas em intervalos de inatividade. Perfeitas para analisar sessões de comportamento do utilizador.

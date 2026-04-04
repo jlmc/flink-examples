@@ -3,9 +3,14 @@ package io.github.jlmc.flink.windows.tumbling;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.functions.AggregateFunction;
 import org.apache.flink.api.common.functions.OpenContext;
+import org.apache.flink.api.common.serialization.SerializationSchema;
+import org.apache.flink.connector.base.DeliveryGuarantee;
+import org.apache.flink.connector.kafka.sink.KafkaRecordSerializationSchema;
+import org.apache.flink.connector.kafka.sink.KafkaSink;
 import org.apache.flink.connector.kafka.source.KafkaSource;
 import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer;
 import org.apache.flink.formats.json.JsonDeserializationSchema;
+import org.apache.flink.formats.json.JsonSerializationSchema;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction;
@@ -25,41 +30,70 @@ public class TumblingWindowKafkaExample {
     public static void main(String[] args) throws Exception {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
+        String bootstrapServers = "localhost:9092";
+        String inputTopic = "sensors-data";
+        String outputTopic = "sensors-avg-data";
+
         // Kafka Source setup
         KafkaSource<SensorReading> source = KafkaSource.<SensorReading>builder()
-                //.setBootstrapServers("kafka:19092")
-                .setBootstrapServers("localhost:9092")
-                .setTopics("sensors-data")
+                .setBootstrapServers(bootstrapServers)
+                .setTopics(inputTopic)
                 .setGroupId("tumbling-windows-group")
                 .setStartingOffsets(OffsetsInitializer.latest())
                 .setValueOnlyDeserializer(new JsonDeserializationSchema<>(SensorReading.class))
                 .build();
 
-        // Watermark Strategy: extracts the event timestamp and allows a 2-second delay
-        WatermarkStrategy<SensorReading> watermarkStrategy = WatermarkStrategy
+        // Kafka Sink setup
+        SerializationSchema<WindowResult> serializationSchema = new JsonSerializationSchema<>();
+        KafkaSink<WindowResult> sink = KafkaSink.<WindowResult>builder()
+                .setBootstrapServers(bootstrapServers)
+                .setRecordSerializer(
+                        KafkaRecordSerializationSchema.builder()
+                                .setTopic(outputTopic)
+                                .setKeySerializationSchema(new SerializationSchema<WindowResult>() {
+                                    @Override
+                                    public byte[] serialize(WindowResult element) {
+                                        return element.sensorId.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                                    }
+                                })
+                                .setValueSerializationSchema(serializationSchema)
+                                .build()
+                )
+                .setDeliveryGuarantee(DeliveryGuarantee.AT_LEAST_ONCE)
+                .build();
+
+        execute(env, source, sink);
+    }
+
+    public static void execute(StreamExecutionEnvironment env,
+                               org.apache.flink.api.connector.source.Source<SensorReading, ?, ?> source,
+                               org.apache.flink.api.connector.sink2.Sink<WindowResult> sink) throws Exception {
+
+        DataStream<SensorReading> sensorStream = env.fromSource(source, createWatermarkStrategy(), "Sensor Source");
+
+        definePipeline(sensorStream).sinkTo(sink);
+
+        env.execute("Flink Tumbling Window Example");
+    }
+
+    public static WatermarkStrategy<SensorReading> createWatermarkStrategy() {
+        return WatermarkStrategy
                 .<SensorReading>forBoundedOutOfOrderness(Duration.ofSeconds(2))
                 .withTimestampAssigner((event, timestamp) -> event.timestamp.toEpochMilli());
+    }
 
-        DataStream<SensorReading> sensorStream = env.fromSource(source, watermarkStrategy, "Kafka Sensor Source");
-
+    public static DataStream<WindowResult> definePipeline(DataStream<SensorReading> input) {
         // Apply 10-second Tumbling Window per sensor ID
-        sensorStream
+        return input
                 .keyBy((SensorReading r) -> r.id)
                 .window(TumblingEventTimeWindows.of(Duration.ofSeconds(10)))
                 .aggregate(
-                        // Aggregate incremental
-                        new SensorReadingAverageAccumulatorAverageAccumulatorAggregateFunction(),
-                        // Função de Processamento com a assinatura correta
+                        new SensorReadingAverageAccumulatorAggregateFunction(),
                         new AverageAccumulatorWindowResultStringTimeWindowProcessWindowFunction()
-                )
-
-                //.reduce((r1, r2) -> new SensorReading(r1.id, r1.timestamp, (r1.temperature + r2.temperature) / 2))
-                .print();
-
-        env.execute("Flink Tumbling Window Kafka Example");
+                );
     }
 
-    private static class SensorReadingAverageAccumulatorAverageAccumulatorAggregateFunction implements AggregateFunction<SensorReading, AverageAccumulator, AverageAccumulator> {
+    public static class SensorReadingAverageAccumulatorAggregateFunction implements AggregateFunction<SensorReading, AverageAccumulator, AverageAccumulator> {
 
         @Override
         public AverageAccumulator createAccumulator() {
@@ -82,7 +116,7 @@ public class TumblingWindowKafkaExample {
         }
     }
 
-    private static class AverageAccumulatorWindowResultStringTimeWindowProcessWindowFunction extends ProcessWindowFunction<AverageAccumulator, WindowResult, String, TimeWindow> {
+    public static class AverageAccumulatorWindowResultStringTimeWindowProcessWindowFunction extends ProcessWindowFunction<AverageAccumulator, WindowResult, String, TimeWindow> {
 
         @Override
         public void open(OpenContext openContext) throws Exception {
@@ -93,7 +127,7 @@ public class TumblingWindowKafkaExample {
         public void process(String id,
                             ProcessWindowFunction<AverageAccumulator, WindowResult, String, TimeWindow>.Context context,
                             Iterable<AverageAccumulator> elements,
-                            Collector<WindowResult> out) throws Exception {
+                            Collector<WindowResult> out) {
 
             // Extraímos o acumulador final
             AverageAccumulator finalAccumulator = elements.iterator().next();

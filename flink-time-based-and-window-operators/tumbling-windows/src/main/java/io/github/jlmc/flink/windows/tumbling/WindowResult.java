@@ -1,12 +1,19 @@
 package io.github.jlmc.flink.windows.tumbling;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import java.time.Instant;
 
 public final class WindowResult implements java.io.Serializable {
-    public final String sensorId;
-    public final double average;
-    public final long measurementsCount;
-    public final Instant start;
-    public final Instant end;
+    public String sensorId;
+    public double average;
+    public long measurementsCount;
+    
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX", timezone = "UTC")
+    public Instant start;
+    
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX", timezone = "UTC")
+    public Instant end;
+
+    public WindowResult() {}
 
     public WindowResult(String sensorId, double average, long count, Instant start, Instant end) {
         this.sensorId = sensorId;

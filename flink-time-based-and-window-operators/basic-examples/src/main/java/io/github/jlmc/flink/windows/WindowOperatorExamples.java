@@ -2,6 +2,7 @@ package io.github.jlmc.flink.windows;
 
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.connector.source.Source;
+import org.apache.flink.api.connector.source.util.ratelimit.RateLimiterStrategy;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.MemorySize;
 import org.apache.flink.configuration.RestOptions;
@@ -33,7 +34,8 @@ public class WindowOperatorExamples {
                     set(WebOptions.LOG_PATH, "./logs/flink.log");
                 }
             };
-            StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(conf);
+           // StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(conf);
+            StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
 
             run(env);
@@ -54,28 +56,31 @@ public class WindowOperatorExamples {
                 new DataGeneratorSource<>(
                         new BetGeneratorFunction(),
                         Long.MAX_VALUE,
+                        RateLimiterStrategy.perSecond(1.0),
                         org.apache.flink.api.common.typeinfo.TypeInformation.of(Bet.class)
                 );
 
         DataStream<Bet> dataStream =
-                env.fromSource(source, WatermarkStrategy.noWatermarks(), "Bets Source");
+                env.fromSource(source, WatermarkStrategy.<Bet>forMonotonousTimestamps().withTimestampAssigner((bet, timestamp) -> bet.timestamp().toEpochMilli()), "Bets Source");
 
-        definePipeline(dataStream);
+        definePipeline(dataStream)
+                .map(bet -> String.format("User: %s, Sum: %.2f", bet.userId(), bet.value()))
+                .print();
 
         env.execute("Window Operator Examples");
     }
 
-    public static SingleOutputStreamOperator<Bet> definePipeline(DataStream<Bet> dataStream) {
+    public static SingleOutputStreamOperator<UserBetTotal> definePipeline(DataStream<Bet> dataStream) {
         return dataStream
-                .keyBy(Bet::userId)
+                .map(bet -> new UserBetTotal(bet.userId(), bet.value()))
+                .keyBy(UserBetTotal::userId)
                 .window(org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows.of(Time.seconds(10)))
-                .reduce((b1, b2) -> new Bet(b1.userId(), b1.timestamp(), b1.value() + b2.value(), b1.marketData()));
+                .reduce((t1, t2) -> new UserBetTotal(t1.userId(), t1.value() + t2.value()));
     }
 
     private static class BetGeneratorFunction implements GeneratorFunction<Long, Bet> {
         @Override
-        public Bet map(Long value) throws Exception {
-            Thread.sleep(10000);
+        public Bet map(Long value) {
             return new Bet(
                     "user" + (value % 3 + 1),
                     Instant.now(),
@@ -85,5 +90,7 @@ public class WindowOperatorExamples {
         }
     }
 
+    
+    public record UserBetTotal(String userId, double value) implements Serializable {}
     public record Bet(String userId, Instant timestamp, double value, java.util.HashMap<String, String> marketData) implements Serializable {}
 }

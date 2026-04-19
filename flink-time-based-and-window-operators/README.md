@@ -18,7 +18,10 @@ This project is divided into several sub-modules, each focusing on a specific ty
 ## Core Concepts
 
 ### What is Windowing?
-Windowing is a technique used in stream processing to group data into finite chunks based on time or other criteria, allowing operations to be applied to these chunks. In Flink, windows can be:
+Windowing is the mechanism used to group stream elements into finite sets based on time or count. 
+It allows you to answer questions like "How many logins occurred in the last 5 minutes?" or "What is the average price of the last 100 transactions?"
+Windowing is a technique used in stream processing to group data into finite chunks based on time or other criteria, allowing operations to be applied to these chunks. 
+In Flink, windows can be:
 *   **Time-driven** (`Time Window`)
 *   **Data-driven** (`Count Window`)
 
@@ -38,6 +41,10 @@ Before performing a window operation, you must specify whether the stream should
 ---
 
 ## Window Assigners
+
+The Window Assigner defines how elements are assigned to windows. 
+This is done by specifying a `WindowAssigner` of your choice in the `window(...)` (for keyed streams) or the `windowAll(...)` (for non-keyed streams) method. The most common types of Window Assigners are:
+
 
 1.  **Tumbling Windows**: Fixed size, no overlap. Ideal for hourly or daily reports.
 2.  **Sliding Windows**: Fixed size but sliding. Useful for real-time trend analysis (e.g., "last 5 minutes of data, updated every 1 minute").
@@ -69,6 +76,39 @@ For robust stream processing, Flink provides:
 ## How to Run
 
 This project uses **Docker Compose** to manage the Flink and Kafka infrastructure.
+
+### Local Execution (IDE)
+
+If you are running the examples directly in your IDE (like IntelliJ IDEA) with **Java 17 or higher**, you must add the following arguments to the VM configuration to avoid JDK encapsulation errors (`InaccessibleObjectException`).
+
+**In IntelliJ IDEA:**
+1. Open the `Run/Debug Configurations` (top right).
+2. Select your application configuration (e.g., `WindowOperatorExamples`).
+3. Click `Modify options` -> `Add VM options`.
+4. Paste the following into the `VM options` field:
+
+```bash
+--add-opens=java.base/java.util=ALL-UNNAMED
+--add-opens=java.base/java.lang=ALL-UNNAMED
+--add-opens=java.base/java.net=ALL-UNNAMED
+--add-opens=java.base/java.io=ALL-UNNAMED
+--add-opens=java.base/java.time=ALL-UNNAMED
+--add-opens=java.base/sun.net.util=ALL-UNNAMED
+```
+
+> **Note**: In the `basic-examples` module, the Flink dependencies are no longer marked as `provided` to facilitate direct execution from the IDE without extra configuration.
+
+### Maven Execution
+
+You can run the main example of the `basic-examples` module using the following command:
+
+```bash
+mvn exec:java -pl flink-time-based-and-window-operators/basic-examples
+```
+
+This command already includes the necessary arguments configured in the `pom.xml`.
+
+### Docker Execution
 
 Each sub-module contains:
 - A `docker-compose.yaml` to spin up the environment.

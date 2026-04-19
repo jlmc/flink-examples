@@ -76,6 +76,39 @@ Para um processamento de fluxo robusto, o Flink fornece:
 
 Este projeto utiliza o **Docker Compose** para gerir a infraestrutura de Flink e Kafka.
 
+### Execução Local (IDE)
+
+Se estiver a executar os exemplos diretamente na sua IDE (como o IntelliJ IDEA) com o **Java 17 ou superior**, deve adicionar os seguintes argumentos à configuração da VM para evitar erros de encapsulamento do JDK (`InaccessibleObjectException`).
+
+**No IntelliJ IDEA:**
+1. Abra as `Run/Debug Configurations` (canto superior direito).
+2. Selecione a sua configuração de aplicação (ex: `WindowOperatorExamples`).
+3. Clique em `Modify options` -> `Add VM options`.
+4. Cole o seguinte no campo `VM options`:
+
+```bash
+--add-opens=java.base/java.util=ALL-UNNAMED
+--add-opens=java.base/java.lang=ALL-UNNAMED
+--add-opens=java.base/java.net=ALL-UNNAMED
+--add-opens=java.base/java.io=ALL-UNNAMED
+--add-opens=java.base/java.time=ALL-UNNAMED
+--add-opens=java.base/sun.net.util=ALL-UNNAMED
+```
+
+> **Nota**: No módulo `basic-examples`, as dependências do Flink já não estão marcadas como `provided` para facilitar a execução direta a partir da IDE sem configurações extras de classpath.
+
+### Execução via Maven
+
+Pode executar o exemplo principal do módulo `basic-examples` utilizando o seguinte comando:
+
+```bash
+mvn exec:java -pl flink-time-based-and-window-operators/basic-examples
+```
+
+Este comando já inclui os argumentos necessários configurados no `pom.xml`.
+
+### Execução via Docker
+
 Cada sub-módulo contém:
 - Um `docker-compose.yaml` para subir o ambiente.
 - Um script `upload-job.sh` para construir e submeter o job ao Flink.

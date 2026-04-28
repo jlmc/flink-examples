@@ -12,6 +12,6 @@ docker run --rm \
   -v "$HOME/.m2":/root/.m2 \
   -w /usr/src/mymaven \
   maven:3.9.6-eclipse-temurin-17 \
-  mvn clean package -pl flink-time-based-and-window-operators/sliding-windows -am -DskipTests
+  mvn clean package -pl flink-sink-connectors/kafka-sink-value-only -am -DskipTests
 
 echo "Build completed successfully."

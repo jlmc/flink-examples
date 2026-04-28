@@ -12,6 +12,6 @@ docker run --rm \
   -v "$HOME/.m2":/root/.m2 \
   -w /usr/src/mymaven \
   maven:3.9.6-eclipse-temurin-17 \
-  mvn clean package -pl flink-time-based-and-window-operators/$MODULE_NAME -am -DskipTests
+  mvn clean package -pl flink-time-based-and-window-operators/session-windows -am -DskipTests
 
 echo "Build completed successfully."

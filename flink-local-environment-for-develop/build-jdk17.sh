@@ -2,7 +2,7 @@
 
 # Get the directory of the script
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-PROJECT_ROOT="$( cd "$DIR/../.." >/dev/null 2>&1 && pwd )"
+PROJECT_ROOT="$( cd "$DIR/.." >/dev/null 2>&1 && pwd )"
 MODULE_NAME=$(basename "$DIR")
 
 echo "Building $MODULE_NAME with JDK 17 using Docker..."
@@ -12,6 +12,6 @@ docker run --rm \
   -v "$HOME/.m2":/root/.m2 \
   -w /usr/src/mymaven \
   maven:3.9.6-eclipse-temurin-17 \
-  mvn clean package -pl flink-time-based-and-window-operators/sliding-windows -am -DskipTests
+  mvn clean package -pl flink-local-environment-for-develop -am -DskipTests
 
 echo "Build completed successfully."

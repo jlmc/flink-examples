@@ -18,6 +18,20 @@ import java.time.Duration;
 public class SessionWindowKafkaExample {
 
     public static void main(String[] args) throws Exception {
+        try {
+            run(args);
+        } catch (Exception e) {
+            if (e.getMessage() != null && e.getMessage().contains("InaccessibleObjectException") ||
+                    (e.getCause() != null && e.getCause().getMessage() != null && e.getCause().getMessage().contains("InaccessibleObjectException"))) {
+                System.err.println("\n[ERROR] Erro de encapsulamento do JDK detectado!");
+                System.err.println("[ERROR] Para corrigir, adicione os seguintes argumentos em 'VM Options' na configuração de execução da sua IDE:");
+                System.err.println("\n--add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.net=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED --add-opens=java.base/java.time=ALL-UNNAMED --add-opens=java.base/sun.net.util=ALL-UNNAMED\n");
+            }
+            throw e;
+        }
+    }
+
+    private static void run(String[] args) throws Exception {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
         org.apache.flink.api.java.utils.ParameterTool parameters = org.apache.flink.api.java.utils.ParameterTool.fromArgs(args);

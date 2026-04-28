@@ -47,7 +47,7 @@ public class TumblingTimeWindowAssignerExampleThree {
                             Long.parseLong(fields[2]) // timestamp
                     );
 
-                }, Types.GENERIC(CityTemperature.class))
+                }, Types.POJO(CityTemperature.class))
                 .assignTimestampsAndWatermarks(
                         WatermarkStrategy
                                 .<CityTemperature>forMonotonousTimestamps()
@@ -76,12 +76,24 @@ public class TumblingTimeWindowAssignerExampleThree {
             return city;
         }
 
+        public void setCity(String city) {
+            this.city = city;
+        }
+
         public float getTemperature() {
             return temperature;
         }
 
+        public void setTemperature(float temperature) {
+            this.temperature = temperature;
+        }
+
         public long getTimestamp() {
             return timestamp;
+        }
+
+        public void setTimestamp(long timestamp) {
+            this.timestamp = timestamp;
         }
     }
 

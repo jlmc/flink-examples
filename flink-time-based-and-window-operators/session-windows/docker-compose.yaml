@@ -68,6 +68,7 @@ services:
       - -c
       - |
         /usr/bin/kafka-topics --create --if-not-exists --topic sensors-data --bootstrap-server kafka:19092 --partitions 1 --replication-factor 1
+        /usr/bin/kafka-topics --create --if-not-exists --topic sensors-session-max --bootstrap-server kafka:19092 --partitions 1 --replication-factor 1
         /usr/bin/kafka-topics --create --if-not-exists --topic sensors-avg-data --bootstrap-server kafka:19092 --partitions 1 --replication-factor 1
     depends_on:
       kafka:

@@ -52,6 +52,20 @@ This is done by specifying a `WindowAssigner` of your choice in the `window(...)
 4.  **Global Windows**: Groups everything into one window. Requires a custom `Trigger` to produce results.
 5.  **Count Windows**: Triggered after a specific number of elements (e.g., every 100 events).
 
+
+---
+
+## Window lifecycle
+
+- A window is created as soon as the first element that belongs to it arrives.
+- The window is completely removed when the time (event or precessing time) passes its end timestamp plus the user-specified allowed lateness.
+- Each window will be **Trigger** and a **function** attached to it. The function will contain the computation to be applied to the content of the window, while the trigger specifies the conditions under which the window is considered ready for the function to be applied (e.g., when the watermark passes the end of the window or when a count threshold is reached).
+- A trigger cam also decide to purge a window's contents and time between its creation and removal. Purging in the case only referes to the elements in the window, and not the window metadata (e.g., timestamps, state, etc.). This means that new data can still be added to that window. This is useful for scenarios where you want to keep the window active but reset its contents based on certain conditions (e.g., after processing a batch of events).
+
+- The window remains active until it is triggered (e.g., when the watermark passes the end of the window or when a count threshold is reached).
+- Once triggered, the window is processed and then destroyed, freeing up resources. 
+- If late data arrives after the window has been destroyed, it can be handled using allowed lateness or side outputs, depending on the configuration.
+
 ---
 
 ## Processing Functions

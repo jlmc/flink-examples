@@ -8,12 +8,14 @@ import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMap
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.windowing.assigners.GlobalWindows;
+import org.apache.flink.streaming.api.windowing.triggers.CountTrigger;
 
 /**
- * Real-world example using Count Windows.
+ * Real-world example using Count Windows implemented with GlobalWindow + CountTrigger.
  * Calculates the average temperature every 3 events per sensor.
  */
-public class CountWindowKafkaExample {
+public class CountWindowByGlobalWindowKafkaExample {
 
     public static void main(String[] args) throws Exception {
         try {
@@ -53,13 +55,17 @@ public class CountWindowKafkaExample {
 
         DataStream<SensorReading> sensorStream = env.fromSource(source, WatermarkStrategy.noWatermarks(), "Kafka Sensor Source");
 
-        // Count window: every 3 elements per sensor
-        sensorStream
-                .keyBy(r -> r.id)
-                .countWindow(3)
-                .reduce((r1, r2) -> new SensorReading(r1.id, r1.timestamp, (r1.temperature + r2.temperature) / 2))
-                .print();
+        definePipeline(sensorStream).print();
 
-        env.execute("Flink Count Window Kafka Example");
+        env.execute("Flink Count Window by Global Window Kafka Example");
+    }
+
+    public static DataStream<SensorReading> definePipeline(DataStream<SensorReading> sensorStream) {
+        // Count window: every 3 elements per sensor implemented by GlobalWindow + CountTrigger
+        return sensorStream
+                .keyBy(r -> r.id)
+                .window(GlobalWindows.create())
+                .trigger(CountTrigger.of(3))
+                .reduce((r1, r2) -> new SensorReading(r1.id, r1.timestamp, (r1.temperature + r2.temperature) / 2));
     }
 }

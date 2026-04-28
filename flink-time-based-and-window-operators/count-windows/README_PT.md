@@ -19,8 +19,8 @@ Calculamos a temperatura média a cada 5 eventos por sensor.
     ```
     Ou use o script fornecido para construir usando um contentor Docker com JDK 11 (garante compatibilidade com a imagem do Flink):
     ```bash
-    chmod +x build-jdk11.sh
-    ./build-jdk11.sh
+    chmod +x build-jdk17.sh
+    ./build-jdk17.sh
     ```
 
 3.  **Submeter o Job**:

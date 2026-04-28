@@ -19,8 +19,8 @@ Using an **AggregateFunction** allows for more efficient incremental aggregation
     ```
     Or use the provided script to build it using a Docker container with JDK 11 (ensures compatibility with the Flink image):
     ```bash
-    chmod +x build-jdk11.sh
-    ./build-jdk11.sh
+    chmod +x build-jdk17.sh
+    ./build-jdk17.sh
     ```
 
 3.  **Submit the Job**:

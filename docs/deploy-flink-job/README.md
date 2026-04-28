@@ -167,6 +167,23 @@ Assuming your shaded JAR is: `projects/flink-works-counter-stream-socket-process
    - Flink UI Stdout tab may not show logs inside Docker; always check container logs.
    
 
+## Stopping Jobs Using the CLI
+
+If you need to stop or cancel running jobs, you can use the following scripts located in the `docker/` directory:
+
+1. **Stop all running jobs:**
+    ```bash
+    ./docker/stop-all-jobs.sh
+    ```
+
+2. **Stop a specific job by ID:**
+    ```bash
+    ./docker/stop-job-by-id.sh <JOB_ID>
+    ```
+
+> Note: These scripts assume the JobManager container is named `jobmanager`. If your container has a different name (e.g., `jobmanager-master`), you may need to adjust the scripts.
+   
+
 
 ## Notes & Tips
 - Make sure your job JAR matches the Flink version in the cluster.

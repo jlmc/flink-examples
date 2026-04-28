@@ -11,6 +11,7 @@
     <artifactId>flink-data-exchange-strategies-and-algorithms</artifactId>
 
     <properties>
+        <!-- <java.version>11</java.version> -->
         <java.version>17</java.version>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
@@ -155,11 +156,5 @@
             <scope>test</scope>
         </dependency>
 
-        <dependency>
-            <groupId>org.apache.flink</groupId>
-            <artifactId>flink-json</artifactId>
-            <version>${flink.version}</version>
-            <scope>provided</scope>
-        </dependency>
     </dependencies>
 </project>

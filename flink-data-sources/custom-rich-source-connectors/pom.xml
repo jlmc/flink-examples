@@ -9,6 +9,7 @@
     <artifactId>custom-rich-source-connectors</artifactId>
 
     <properties>
+        <!-- <java.version>11</java.version> -->
         <java.version>17</java.version>
         <slf4j-api.version>1.7.36</slf4j-api.version>
     </properties>

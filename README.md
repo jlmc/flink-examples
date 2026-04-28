@@ -31,6 +31,8 @@ https://nightlies.apache.org/flink/flink-docs-release-1.20/docs/connectors/datas
 7. [DataStream API](#datastream-api)
     * [Stream Data Transformations](docs/data-streams-api/DataStream-Transformations.md)
 
+8. [Checkpoints and Fault Tolerance](docs/checkpoints/README.md)
+
 ---
 
 ## Key Features

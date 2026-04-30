@@ -10,7 +10,14 @@ class StateBackendAdtExampleTest {
     @Test
     void shouldConfigureHashMapStateBackend() {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        assertThatCode(() -> StateBackendAdtExample.configureHashMapStateBackend(env, "file:///tmp/flink/checkpoints/hashmap-test"))
+        assertThatCode(() -> HashMapStateBackendAdtExample.configureHashMapStateBackend(env, "file:///tmp/flink/checkpoints/hashmap-test"))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    void shouldConfigureEmbeddedRocksDbStateBackend() {
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        assertThatCode(() -> EmbeddedRocksDbStateBackendAdtExample.configureEmbeddedRocksDbStateBackend(env, "file:///tmp/flink/checkpoints/rocksdb-test"))
                 .doesNotThrowAnyException();
     }
 }

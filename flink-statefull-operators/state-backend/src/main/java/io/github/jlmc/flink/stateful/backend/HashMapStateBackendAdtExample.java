@@ -1,20 +1,17 @@
 package io.github.jlmc.flink.stateful.backend;
 
 import org.apache.flink.runtime.state.hashmap.HashMapStateBackend;
-import org.apache.flink.contrib.streaming.state.EmbeddedRocksDBStateBackend;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 
 /**
- * 4) State Backend: HashMapStateBackend e EmbeddedRocksDBStateBackend.
+ * 4) State Backend (estratégia 1): HashMapStateBackend.
  */
-public class StateBackendAdtExample {
+public class HashMapStateBackendAdtExample {
 
     public static void main(String[] args) throws Exception {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
         configureHashMapStateBackend(env, "file:///tmp/flink/checkpoints/hashmap");
-        // Alternativa:
-        // configureEmbeddedRocksDbStateBackend(env, "file:///tmp/flink/checkpoints/rocksdb");
 
         env.fromData(
                         "m-1,hospital-huc,ADT_A01,1000",
@@ -27,14 +24,24 @@ public class StateBackendAdtExample {
     }
 
     public static void configureHashMapStateBackend(StreamExecutionEnvironment env, String checkpointDir) {
+        // Estratégia ativa para este exemplo: backend em memória (heap da JVM).
         env.setStateBackend(new HashMapStateBackend());
-        env.enableCheckpointing(10_000);
-        env.getCheckpointConfig().setCheckpointStorage(checkpointDir);
-    }
 
-    public static void configureEmbeddedRocksDbStateBackend(StreamExecutionEnvironment env, String checkpointDir) {
-        env.setStateBackend(new EmbeddedRocksDBStateBackend());
+        // Código alternativo equivalente (recomendado em produção por configuração externa):
+        // - flink-conf.yaml
+        //   state.backend.type: hashmap
+
+        // Ativa checkpoints periódicos para garantir recuperação de falhas.
         env.enableCheckpointing(10_000);
+
+        // Código alternativo para tuning de checkpointing:
+        // env.getCheckpointConfig().setMinPauseBetweenCheckpoints(5_000);
+        // env.getCheckpointConfig().setCheckpointTimeout(60_000);
+
+        // Define explicitamente o storage dos checkpoints (durável e recuperável).
         env.getCheckpointConfig().setCheckpointStorage(checkpointDir);
+
+        // Código alternativo equivalente:
+        // env.getCheckpointConfig().setCheckpointStorage(new FileSystemCheckpointStorage(checkpointDir));
     }
 }

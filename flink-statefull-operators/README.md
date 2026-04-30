@@ -15,7 +15,7 @@ Novo agregador para estudar operadores stateful no Apache Flink com domínio Hea
   - Exemplo: `OperatorAndBroadcastStateAdtExample`.
 - `state-backend`
   - Tema: `HashMapStateBackend` e `EmbeddedRocksDBStateBackend`.
-  - Exemplo: `StateBackendAdtExample`.
+  - Exemplos: `HashMapStateBackendAdtExample` e `EmbeddedRocksDbStateBackendAdtExample`.
 
 ## Documentação
 

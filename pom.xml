@@ -36,5 +36,6 @@
         <module>flink-sink-connectors</module>
         <module>flink-time-based-and-window-operators</module>
         <module>flink-watermarks</module>
+        <module>flink-statefull-operators</module>
     </modules>
 </project>

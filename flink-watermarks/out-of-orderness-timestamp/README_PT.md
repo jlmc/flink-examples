@@ -91,3 +91,59 @@ Para acompanhar resultados:
 ## Valor prático
 
 Este caso suporta monitorização operacional em saúde (ocupação, throughput de admissões/altas/transferências por hospital) com maior robustez perante atrasos e desordem dos dados, preservando correção temporal dos indicadores.
+
+## Exemplos adicionais por tópico (0-138)
+
+O módulo inclui também classes focadas em `src/main/java/.../examples` para estudar cada tópico de forma isolada:
+
+- `0. Base de event-time windowing (timestamps monotónicos)`
+  - Classe: `Example0OutOfOrdernessAndLateDataExample`
+  - Demonstra a configuração base com `forMonotonousTimestamps()` e porque esta abordagem só é adequada quando os eventos chegam estritamente ordenados.
+
+- `1. Tratamento de out-of-orderness com atraso limitado`
+  - Classe: `Example1HandleOutOfOrdernessAndLateData`
+  - Demonstra `forBoundedOutOfOrderness(Duration.ofSeconds(2))` para incluir eventos ligeiramente fora de ordem na janela correta antes de serem considerados tardios.
+
+- `129. WatermarkStrategy(TimestampAssigner&WatermarkGenerator)`
+  - Classe: `Example2WatermarkStrategyWithAssignerAndGenerator`
+  - Mostra construção explícita de `WatermarkStrategy` combinando:
+    - extração de timestamp (`eventTime`);
+    - gerador custom (`onEvent` + `onPeriodicEmit`).
+
+- `130. Dived Into Flink Source Code In Depth Understand How Watermarks Work`
+  - Classe: `Example3DiveIntoWatermarkLifecycle`
+  - Explica o ciclo interno com os dois callbacks críticos:
+    - `onEvent(...)`: atualiza estado local de progresso;
+    - `onPeriodicEmit(...)`: publica watermark para operadores downstream.
+
+- `131. How to Customize The Flink Watermark Generator by Periodic Approach`
+  - Classe: `Example4CustomPeriodicWatermarkGenerator`
+  - Demonstra estratégia periódica (`maxSeenTs - outOfOrderness - 1`) e o trade-off latência/completude.
+
+- `132. How to Customize The Flink Watermark Generator by Punctuated Approach`
+  - Classe: `Example5CustomPunctuatedWatermarkGenerator`
+  - Demonstra abordagem pontuada: watermark emitido apenas em eventos marcador.
+
+- `133. How Flink Watermark Propagation Works`
+  - Classe: `Example6WatermarkPropagation`
+  - Demonstra que o progresso downstream fica limitado pelo menor watermark upstream.
+
+- `134. Flink Idle Source and How to Handle Idleness Source`
+  - Classe: `Example7IdleSourceHandling`
+  - Demonstra `withIdleness(...)` para impedir que partições/sources inativas bloqueiem o progresso global.
+
+- `135. WindowedStream Allowed Lateness`
+  - Classe: `Example8WindowAllowedLateness`
+  - Demonstra `.allowedLateness(...)` para manter janelas abertas para atualizações tardias aceitáveis.
+
+- `136. WindowedStream Side Output Late Event Avoid Data Lost`
+  - Classe: `Example9SideOutputLateEvents`
+  - Demonstra `.sideOutputLateData(...)` para capturar eventos muito tardios e evitar perda silenciosa.
+
+- `137. Flink Two Window Join Operation and Practice`
+  - Classe: `Example10TwoStreamWindowJoin`
+  - Demonstra `window join` em event time entre dois streams.
+
+- `138. Flink Two KeyedStreams Interval Join Operation and Practice`
+  - Classe: `Example11TwoKeyedStreamsIntervalJoin`
+  - Demonstra correlação temporal por intervalo (`between(-2s, +2s)`) entre `KeyedStream`s.

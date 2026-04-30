@@ -91,3 +91,59 @@ To monitor results:
 ## Practical value
 
 This case supports healthcare operational monitoring (occupancy, admissions/discharges/transfers throughput per hospital) with higher robustness against delayed and out-of-order data, preserving temporal correctness of indicators.
+
+## Additional topic-focused examples (0-138)
+
+The module now also includes focused classes in `src/main/java/.../examples` to study each topic in isolation:
+
+- `0. Baseline event-time windowing (monotonic timestamps)`
+  - Class: `Example0OutOfOrdernessAndLateDataExample`
+  - Demonstrates the baseline setup with `forMonotonousTimestamps()` and explains why this is suitable only when events are strictly ordered.
+
+- `1. Handling out-of-orderness with bounded delay`
+  - Class: `Example1HandleOutOfOrdernessAndLateData`
+  - Demonstrates `forBoundedOutOfOrderness(Duration.ofSeconds(2))` to include slightly out-of-order records in the correct event-time window before they become late.
+
+- `129. WatermarkStrategy(TimestampAssigner&WatermarkGenerator)`
+  - Class: `Example2WatermarkStrategyWithAssignerAndGenerator`
+  - Shows explicit construction of `WatermarkStrategy` combining:
+    - custom timestamp extraction (`eventTime`);
+    - custom generator (`onEvent` + `onPeriodicEmit`).
+
+- `130. Dive into Flink source-code logic for watermarks`
+  - Class: `Example3DiveIntoWatermarkLifecycle`
+  - Distills the runtime lifecycle into the two critical callbacks:
+    - `onEvent(...)`: update local progress state;
+    - `onPeriodicEmit(...)`: publish watermark to downstream operators.
+
+- `131. Custom periodic watermark generator`
+  - Class: `Example4CustomPeriodicWatermarkGenerator`
+  - Demonstrates periodic strategy (`maxSeenTs - outOfOrderness - 1`) and why periodic emission controls latency/completeness trade-off.
+
+- `132. Custom punctuated watermark generator`
+  - Class: `Example5CustomPunctuatedWatermarkGenerator`
+  - Demonstrates punctuated approach where watermark is emitted only on marker events.
+
+- `133. Watermark propagation`
+  - Class: `Example6WatermarkPropagation`
+  - Demonstrates that downstream progress is constrained by the minimum upstream watermark.
+
+- `134. Idle source handling`
+  - Class: `Example7IdleSourceHandling`
+  - Demonstrates `withIdleness(...)` to prevent idle partitions/sources from stalling global event-time progress.
+
+- `135. WindowedStream allowed lateness`
+  - Class: `Example8WindowAllowedLateness`
+  - Demonstrates `.allowedLateness(...)` to keep a window open for late-but-acceptable updates.
+
+- `136. Side output for late events`
+  - Class: `Example9SideOutputLateEvents`
+  - Demonstrates `.sideOutputLateData(...)` so very late records are captured instead of silently dropped.
+
+- `137. Two-stream window join`
+  - Class: `Example10TwoStreamWindowJoin`
+  - Demonstrates event-time window join between two streams using a tumbling window.
+
+- `138. Two keyed streams interval join`
+  - Class: `Example11TwoKeyedStreamsIntervalJoin`
+  - Demonstrates interval-based correlation (`between(-2s, +2s)`) for keyed streams in event time.

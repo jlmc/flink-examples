@@ -13,4 +13,8 @@
     <name>Flink Watermarks Examples and Documentation</name>
     <packaging>pom</packaging>
 
+    <modules>
+        <module>out-of-orderness-timestamp</module>
+    </modules>
+
 </project>

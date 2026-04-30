@@ -1,32 +1,36 @@
 #!/bin/bash
 
-# TOPIC name
-TOPIC="hls-providers.hl7.adt"
+# TOPIC and event volume (can be overridden)
+TOPIC="${TOPIC:-adt-events-data}"
+EVENT_COUNT="${EVENT_COUNT:-500}"
 
-# Function to send an event
-send_event() {
-  ACCOUNT_ID=$1
-  PATIENT_ID=$2
-  EVENT_TYPE=$3
-  LOCATION_ID=$4
+echo "Submitting $EVENT_COUNT events to Kafka topic: $TOPIC"
+
+generate_event() {
+  INDEX=$1
+  ACCOUNT_ID="acc-$((INDEX % 10))"
+  PATIENT_ID="pat-$((100 + (INDEX % 250)))"
+  LOCATION_ID="WARD-$((INDEX % 8))"
+  EVENT_KEY="${ACCOUNT_ID}_${PATIENT_ID}"
   TS=$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")
 
-  JSON="{\"accountId\":\"$ACCOUNT_ID\",\"patientId\":\"$PATIENT_ID\",\"eventType\":\"$EVENT_TYPE\",\"locationId\":\"$LOCATION_ID\",\"eventTimestamp\":\"$TS\"}"
+  case $((INDEX % 4)) in
+    0) EVENT_TYPE="ADMIT" ;;
+    1) EVENT_TYPE="TRANSFER" ;;
+    2) EVENT_TYPE="UPDATE" ;;
+    *) EVENT_TYPE="DISCHARGE" ;;
+  esac
 
-  echo "Sending: $JSON"
-  echo "$JSON" | docker exec -i kafka kafka-console-producer --bootstrap-server localhost:9092 --topic $TOPIC
+  printf '%s|{"accountId":"%s","patientId":"%s","eventType":"%s","locationId":"%s","eventTimestamp":"%s"}\n' \
+    "$EVENT_KEY" "$ACCOUNT_ID" "$PATIENT_ID" "$EVENT_TYPE" "$LOCATION_ID" "$TS"
 }
 
-echo "Submitting events to Kafka topic: $TOPIC"
+for ((i=1; i<=EVENT_COUNT; i++)); do
+  generate_event "$i"
+done | docker exec -i kafka kafka-console-producer \
+  --bootstrap-server localhost:9092 \
+  --topic "$TOPIC" \
+  --property parse.key=true \
+  --property key.separator='|'
 
-send_event "acc-1" "pat-100" "ADMIT" "ER"
-sleep 1
-send_event "acc-1" "pat-100" "TRANSFER" "WARD-A"
-sleep 1
-send_event "acc-1" "pat-101" "ADMIT" "ER"
-sleep 1
-send_event "acc-1" "pat-100" "DISCHARGE" "WARD-A"
-sleep 1
-send_event "acc-2" "pat-900" "ADMIT" "ICU"
-
-echo "Done."
+echo "Done. Produced $EVENT_COUNT events."

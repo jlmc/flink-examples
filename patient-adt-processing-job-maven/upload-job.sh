@@ -22,7 +22,7 @@ if echo "$RESPONSE" | grep -q '"status":"success"'; then
     echo "Successfully uploaded JAR. JAR ID: $JAR_ID"
 
     echo "Running the job..."
-    ARGS="--kafkaBootstrapServers kafka:19092 --kafkaTopic hls-providers.hl7.adt --kafkaGroupId patient-adt-processing-job-java --flinkParallelism 1 --eventTtlInDays 5 --dischargedTtlInDays 2"
+    ARGS="--kafkaBootstrapServers kafka:19092 --kafkaTopic adt-events-data --kafkaGroupId patient-adt-processing-job-java --flinkParallelism 1 --eventTtlInDays 5 --dischargedTtlInDays 2"
 
     RUN_RESPONSE=$(curl -s -X POST "http://localhost:8081/jars/$JAR_ID/run" \
         -H "Content-Type: application/json" \

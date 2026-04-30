@@ -46,14 +46,14 @@ public class OutOfOrdernessTimestampKafkaExampleTest {
         env.setParallelism(2);
 
         Instant baseTime = Instant.parse("2026-04-04T00:00:00Z");
-        List<SensorReading> readings = new ArrayList<>();
+        List<FhirAdtEvent> readings = new ArrayList<>();
 
-        readings.add(new SensorReading("sensor1", baseTime.plusSeconds(1), 20.0));
-        readings.add(new SensorReading("sensor1", baseTime.plusSeconds(12), 30.0));
-        readings.add(new SensorReading("sensor1", baseTime.plusSeconds(2), 22.0));
-        readings.add(new SensorReading("sensor1", baseTime.plusSeconds(25), 40.0));
+        readings.add(new FhirAdtEvent("msg-1", "pat-1", "hospital-lisbon", "ADT_A01", baseTime.plusSeconds(1)));
+        readings.add(new FhirAdtEvent("msg-2", "pat-2", "hospital-lisbon", "ADT_A03", baseTime.plusSeconds(12)));
+        readings.add(new FhirAdtEvent("msg-3", "pat-3", "hospital-lisbon", "ADT_A01", baseTime.plusSeconds(2)));
+        readings.add(new FhirAdtEvent("msg-4", "pat-4", "hospital-lisbon", "ADT_A03", baseTime.plusSeconds(25)));
 
-        DataStream<SensorReading> sensorStream = env.fromData(readings)
+        DataStream<FhirAdtEvent> sensorStream = env.fromData(readings)
                 .assignTimestampsAndWatermarks(OutOfOrdernessTimestampKafkaExample.createWatermarkStrategy());
 
         OutOfOrdernessTimestampKafkaExample.definePipeline(sensorStream)
@@ -61,28 +61,40 @@ public class OutOfOrdernessTimestampKafkaExampleTest {
 
         env.execute();
 
-        List<WindowResult> values = CollectSink.values();
+        List<AdtWindowResult> values = CollectSink.values();
         assertThat(values).hasSize(3);
 
-        WindowResult firstWindow = values.stream()
+        AdtWindowResult firstWindow = values.stream()
                 .filter(r -> r.start.equals(baseTime))
                 .findFirst()
                 .orElseThrow();
-        assertThat(firstWindow.average).isEqualTo(21.0);
-        assertThat(firstWindow.measurementsCount).isEqualTo(2);
+        assertThat(firstWindow.facilityId).isEqualTo("hospital-lisbon");
+        assertThat(firstWindow.eventType).isEqualTo("ADT_A01");
+        assertThat(firstWindow.totalEvents).isEqualTo(2);
+        assertThat(firstWindow.admits).isEqualTo(2);
+        assertThat(firstWindow.discharges).isEqualTo(0);
+        assertThat(firstWindow.transfers).isEqualTo(0);
 
-        WindowResult secondWindow = values.stream()
+        AdtWindowResult secondWindow = values.stream()
                 .filter(r -> r.start.equals(baseTime.plusSeconds(10)))
                 .findFirst()
                 .orElseThrow();
-        assertThat(secondWindow.average).isEqualTo(30.0);
-        assertThat(secondWindow.measurementsCount).isEqualTo(1);
+        assertThat(secondWindow.facilityId).isEqualTo("hospital-lisbon");
+        assertThat(secondWindow.eventType).isEqualTo("ADT_A03");
+        assertThat(secondWindow.totalEvents).isEqualTo(1);
+        assertThat(secondWindow.admits).isEqualTo(0);
+        assertThat(secondWindow.discharges).isEqualTo(1);
+        assertThat(secondWindow.transfers).isEqualTo(0);
 
-        WindowResult thirdWindow = values.stream()
+        AdtWindowResult thirdWindow = values.stream()
                 .filter(r -> r.start.equals(baseTime.plusSeconds(20)))
                 .findFirst()
                 .orElseThrow();
-        assertThat(thirdWindow.average).isEqualTo(40.0);
-        assertThat(thirdWindow.measurementsCount).isEqualTo(1);
+        assertThat(thirdWindow.facilityId).isEqualTo("hospital-lisbon");
+        assertThat(thirdWindow.eventType).isEqualTo("ADT_A03");
+        assertThat(thirdWindow.totalEvents).isEqualTo(1);
+        assertThat(thirdWindow.admits).isEqualTo(0);
+        assertThat(thirdWindow.discharges).isEqualTo(1);
+        assertThat(thirdWindow.transfers).isEqualTo(0);
     }
 }

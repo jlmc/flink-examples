@@ -87,7 +87,8 @@ services:
       - /bin/bash
       - -c
       - |
-        /usr/bin/kafka-topics --create --if-not-exists --topic hls-providers.hl7.adt --bootstrap-server kafka:19092 --partitions 1 --replication-factor 1
+        /usr/bin/kafka-topics --create --if-not-exists --topic adt-events-data --bootstrap-server kafka:19092 --partitions 1 --replication-factor 1
+        /usr/bin/kafka-topics --create --if-not-exists --topic result-data --bootstrap-server kafka:19092 --partitions 1 --replication-factor 1
     depends_on:
       kafka:
         condition: service_healthy

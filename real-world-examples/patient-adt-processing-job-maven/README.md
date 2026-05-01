@@ -1,28 +1,72 @@
 # patient-adt-processing-job-maven
 
-Novo módulo em `Java + Maven` com implementação equivalente ao processamento ADT:
+Patient ADT stream processing example using `Apache Flink` + `Kafka` + `MongoDB`.
 
-- consumo de eventos ADT em JSON a partir de Kafka;
-- parsing para uma classe simplificada `AdtEvent`;
-- `keyBy(accountId_patientId)`;
-- resolução de último estado por paciente com `MapState` + `TTL`;
-- saída no `console sink` (ponto simples para trocar por Mongo/Kafka sink no teu ambiente).
+## Use case
 
-## Build
+This job consumes ADT events (`A01`, `A02`, `A21`, `A22`, `A03`) from Kafka and keeps the latest valid location per patient.
 
-```bash
-mvn -pl patient-adt-processing-job-maven -am test
-mvn -pl patient-adt-processing-job-maven -am package
+Pipeline summary:
+- Reads keyed events from topic `adt-events-data`.
+- Extracts `AdtEvent` from Kafka key/value.
+- Groups by `accountId_patientId`.
+- Resolves latest valid patient location with `MapState` + TTL.
+- Upserts the resolved state into MongoDB collection `adt_patient_last_location`.
+
+## Architecture diagram
+
+```mermaid
+flowchart LR
+    E[submit-events.sh\nGenerates ADT events] --> K[(Kafka\nadt-events-data)]
+    K --> F[PatientAdtIngestionJobJava\nApache Flink]
+    F --> M[(MongoDB\npatient_adt.adt_patient_last_location)]
+
+    U[upload-job.sh] --> JM[Flink JobManager REST]
+    B[build-jdk17.sh] --> JAR[Shaded JAR]
+    JAR --> U
 ```
 
-## Run
+## How to run
+
+Run from:
+
+`real-world-examples/patient-adt-processing-job-maven`
+
+1. Start infrastructure
 
 ```bash
-java -jar patient-adt-processing-job-maven/target/patient-adt-processing-job-maven-1.0-SNAPSHOT.jar \
-  --kafkaBootstrapServers localhost:9092 \
-  --kafkaTopic hls-providers.hl7.adt \
-  --kafkaGroupId patient-adt-processing-job-java \
-  --flinkParallelism 1 \
-  --eventTtlInDays 5 \
-  --dischargedTtlInDays 2
+docker compose up -d
 ```
+
+2. Build job JAR (JDK 17)
+
+```bash
+./build-jdk17.sh
+```
+
+3. Upload and start Flink job
+
+```bash
+./upload-job.sh
+```
+
+4. Submit sample ADT events to Kafka
+
+```bash
+./submit-events.sh
+```
+
+## Service web interfaces
+
+- Flink JobManager UI: `http://localhost:8081`
+- Kafka UI: `http://localhost:8085`
+- MinIO Console: `http://localhost:9001`
+
+Services without native web UI in this stack:
+- Kafka broker: no web UI (`localhost:9092`)
+- MongoDB: no web UI (`localhost:27017`)
+- Flink TaskManager: no dedicated web UI (managed via JobManager UI)
+
+## Portuguese version
+
+See `README.pt.md`.

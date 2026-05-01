@@ -8,9 +8,9 @@ import io.github.jlmc.flink.patientadt.infrastructure.kafka.AdtEventKafkaSourceF
 import io.github.jlmc.flink.patientadt.infrastructure.mongodb.AdtPatientLastLocationMongoSinkFactory;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.connector.sink2.Sink;
+import org.apache.flink.api.connector.source.Source;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.utils.ParameterTool;
-import org.apache.flink.connector.kafka.source.KafkaSource;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 
 import java.time.Duration;
@@ -33,7 +33,7 @@ public class PatientAdtIngestionJobJava {
 
         StreamExecutionEnvironment env = StreamExecutionEnvironmentFactory.build(params);
 
-        KafkaSource<Tuple2<String, AdtEvent>> source = AdtEventKafkaSourceFactory.build(bootstrapServers, topic, groupId);
+        Source<Tuple2<String, AdtEvent>, ?, ?> source = AdtEventKafkaSourceFactory.build(bootstrapServers, topic, groupId);
 
         Sink<AdtPatientLastLocation> mongoSink = AdtPatientLastLocationMongoSinkFactory
                 .build(mongoUri, mongoDatabase, mongoCollection);
@@ -52,7 +52,7 @@ public class PatientAdtIngestionJobJava {
 
     public static void definePipeline(
             StreamExecutionEnvironment env,
-            KafkaSource<Tuple2<String, AdtEvent>> source,
+            Source<Tuple2<String, AdtEvent>, ?, ?> source,
             Sink<AdtPatientLastLocation> sink,
             int eventTtlDays,
             int dischargedTtlDays,

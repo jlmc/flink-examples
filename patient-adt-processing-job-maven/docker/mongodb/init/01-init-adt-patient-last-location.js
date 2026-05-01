@@ -22,13 +22,7 @@ database.createCollection(collectionName, {
 const collection = database.getCollection(collectionName);
 
 // PK lógica: accountId + "_" + patientId (armazenada em _id)
-collection.createIndex(
-    { _id: 1 },
-    {
-        name: "pk_account_patient",
-        unique: true
-    }
-);
+// Nota: o índice `_id` já existe por defeito e é único; não deve ser recriado.
 
 // Índices auxiliares para melhorar pesquisas por accountId e patientId
 collection.createIndex(

@@ -10,6 +10,10 @@ services:
         FLINK_PROPERTIES=
         jobmanager.rpc.address: jobmanager
         fs.allowed-fallback-filesystems: s3
+        s3.access-key: minio
+        s3.secret-key: minio123
+        s3.endpoint: http://minio:9000
+        s3.path.style.access: true
         fs.s3a.access.key: minio
         fs.s3a.secret.key: minio123
         fs.s3a.endpoint: http://minio:9000
@@ -42,6 +46,10 @@ services:
         jobmanager.rpc.address: jobmanager
         taskmanager.numberOfTaskSlots: 2
         fs.allowed-fallback-filesystems: s3
+        s3.access-key: minio
+        s3.secret-key: minio123
+        s3.endpoint: http://minio:9000
+        s3.path.style.access: true
         fs.s3a.access.key: minio
         fs.s3a.secret.key: minio123
         fs.s3a.endpoint: http://minio:9000

@@ -19,6 +19,13 @@ services:
       - AWS_REGION=us-east-1
     volumes:
       - ../flink-sink-connectors/s3-sink-connector/plugins:/opt/flink/plugins
+    depends_on:
+      minio:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
     networks:
       - adt-demo
 

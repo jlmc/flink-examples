@@ -22,7 +22,7 @@ services:
       - AWS_SECRET_ACCESS_KEY=minio123
       - AWS_REGION=us-east-1
     volumes:
-      - ../flink-sink-connectors/s3-sink-connector/plugins:/opt/flink/plugins
+      - ../../flink-sink-connectors/s3-sink-connector/plugins:/opt/flink/plugins
     depends_on:
       minio:
         condition: service_healthy
@@ -58,7 +58,7 @@ services:
       - AWS_SECRET_ACCESS_KEY=minio123
       - AWS_REGION=us-east-1
     volumes:
-      - ../flink-sink-connectors/s3-sink-connector/plugins:/opt/flink/plugins
+      - ../../flink-sink-connectors/s3-sink-connector/plugins:/opt/flink/plugins
     networks:
       - adt-demo
 
@@ -143,8 +143,8 @@ services:
     environment:
       MINIO_ACCESS_KEY: minio
       MINIO_SECRET_KEY: minio123
-    volumes:
-      - ./minio_data:/data
+    #volumes:
+    #  - ./minio_data:/data
     command: server /data --console-address ":9001"
     healthcheck:
       test: ["CMD", "mc", "ready", "local"]

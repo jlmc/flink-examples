@@ -1,9 +1,5 @@
 package io.github.jlmc.flink.patientadt;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.github.jlmc.flink.patientadt.components.AdtEventKeyedDeserializationSchema;
 import io.github.jlmc.flink.patientadt.model.AdtEvent;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
@@ -15,6 +11,9 @@ import org.apache.flink.connector.kafka.sink.KafkaRecordSerializationSchema;
 import org.apache.flink.connector.kafka.source.KafkaSource;
 import org.apache.flink.connector.kafka.source.KafkaSourceOptions;
 import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.JsonProcessingException;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 
 import java.nio.charset.StandardCharsets;
@@ -24,9 +23,7 @@ import java.nio.charset.StandardCharsets;
 //
 public class PatientAdtIngestionJobJava {
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
-            .registerModule(new JavaTimeModule())
-            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     public static void main(String[] args) throws Exception {
         ParameterTool params = ParameterTool.fromArgs(args);
@@ -83,7 +80,14 @@ public class PatientAdtIngestionJobJava {
 
     private static String toJson(AdtEvent event) {
         try {
-            return OBJECT_MAPPER.writeValueAsString(event);
+            ObjectNode json = OBJECT_MAPPER.createObjectNode();
+            json.put("accountId", event.accountId);
+            json.put("patientId", event.patientId);
+            json.put("eventType", event.eventType);
+            json.put("locationId", event.locationId);
+            json.put("eventTimestamp", event.eventTimestamp == null ? null : event.eventTimestamp.toString());
+
+            return OBJECT_MAPPER.writeValueAsString(json);
         } catch (JsonProcessingException e) {
             throw new RuntimeException("Failed to serialize AdtEvent", e);
         }

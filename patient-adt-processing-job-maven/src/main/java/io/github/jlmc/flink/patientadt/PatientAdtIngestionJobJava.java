@@ -14,6 +14,7 @@ import org.apache.flink.connector.kafka.source.KafkaSource;
 import org.apache.flink.connector.kafka.source.KafkaSourceOptions;
 import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 
 import java.time.Duration;
 
@@ -39,7 +40,12 @@ public class PatientAdtIngestionJobJava {
                 .setBootstrapServers(bootstrapServers)
                 .setTopics(topic)
                 .setGroupId(groupId)
-                .setStartingOffsets(OffsetsInitializer.earliest())
+
+                // forçar a leitura de todos os eventos desde o inicio do tópico.
+                // .setStartingOffsets(OffsetsInitializer.earliest())
+                .setStartingOffsets(OffsetsInitializer.timestamp(0L))
+                .setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+
                 .setDeserializer(new AdtEventKeyedDeserializationSchema())
                 .setProperty(KafkaSourceOptions.COMMIT_OFFSETS_ON_CHECKPOINT.key(), "true")
                 //.setProperty(org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "5000")

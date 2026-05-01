@@ -61,18 +61,25 @@ public class PatientAdtIngestionJobJava {
                 .build();
 
 
-        env.fromSource(source, WatermarkStrategy.noWatermarks(), "kafka-key-value-generator")
+        PatientLocationProcessFunction patientLocationProcessFunction = new PatientLocationProcessFunction(
+                Duration.ofDays(eventTtlDays),
+                Duration.ofDays(dischargedTtlDays)
+        );
 
+        env.fromSource(source, WatermarkStrategy.noWatermarks(), "kafka-key-value-generator")
                 .map(it -> it.f1)
                 .name("Extract AdtEvent")
                 .uid("extract-adt-event")
 
                 .keyBy(AdtEvent::patientKey)
 
-                .process(new PatientLocationProcessFunction(
-                        Duration.ofDays(eventTtlDays),
-                        Duration.ofDays(dischargedTtlDays)
-                ))
+                .process(patientLocationProcessFunction)
+                .name("Resolve Patient Location")
+                .uid("patient-location-resolver")
+
+                //.sinkTo(mongoSink)
+                //.name("MongoDB Sink")
+                //.uid("mongodb-sink")
 
 
                 .sinkTo(sink);

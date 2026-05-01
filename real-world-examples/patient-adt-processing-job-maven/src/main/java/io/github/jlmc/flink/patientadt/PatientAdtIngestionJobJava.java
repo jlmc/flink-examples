@@ -11,6 +11,7 @@ import org.apache.flink.api.connector.sink2.Sink;
 import org.apache.flink.api.connector.source.Source;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.utils.ParameterTool;
+import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 
 import java.time.Duration;
@@ -42,6 +43,7 @@ public class PatientAdtIngestionJobJava {
                 env,
                 source,
                 mongoSink,
+                parallelism,
                 eventTtlDays,
                 dischargedTtlDays,
                 watermarkOutOfOrdernessMs
@@ -54,17 +56,11 @@ public class PatientAdtIngestionJobJava {
             StreamExecutionEnvironment env,
             Source<Tuple2<String, AdtEvent>, ?, ?> source,
             Sink<AdtPatientLastLocation> sink,
+            int parallelism,
             int eventTtlDays,
             int dischargedTtlDays,
             long watermarkOutOfOrdernessMs
     ) {
-
-
-        PatientLocationProcessFunction patientLocationProcessFunction = new PatientLocationProcessFunction(
-                Duration.ofDays(eventTtlDays),
-                Duration.ofDays(dischargedTtlDays)
-        );
-
         WatermarkStrategy<Tuple2<String, AdtEvent>> watermarkStrategy = WatermarkStrategy
                 .<Tuple2<String, AdtEvent>>forBoundedOutOfOrderness(Duration.ofMillis(watermarkOutOfOrdernessMs))
                 .withTimestampAssigner((value, timestamp) -> {
@@ -75,20 +71,40 @@ public class PatientAdtIngestionJobJava {
                     return event.getEventTimestamp().toEpochMilli();
                 });
 
-        env.fromSource(source, watermarkStrategy, "Kafka Source")
-                //.assignTimestampsAndWatermarks(watermarkStrategy)
-                .map(it -> it.f1)
+        DataStream<Tuple2<String, AdtEvent>> sourceStream = env.fromSource(source, watermarkStrategy, "Kafka Source")
+                .setParallelism(parallelism)
+                .name("Kafka Source");
+
+        definePipeline(sourceStream, parallelism, eventTtlDays, dischargedTtlDays)
+                .sinkTo(sink)
+                .name("MongoDB Sink")
+                .uid("mongodb-sink")
+                .setParallelism(parallelism);
+    }
+
+    public static DataStream<AdtPatientLastLocation> definePipeline(
+            DataStream<Tuple2<String, AdtEvent>> sourceStream,
+            int parallelism,
+            int eventTtlDays,
+            int dischargedTtlDays
+    ) {
+        PatientLocationProcessFunction patientLocationProcessFunction = new PatientLocationProcessFunction(
+                Duration.ofDays(eventTtlDays),
+                Duration.ofDays(dischargedTtlDays)
+        );
+
+        return sourceStream
+                .map(tuple -> tuple.f1)
                 .name("Extract AdtEvent")
                 .uid("extract-adt-event")
+                .setParallelism(parallelism)
 
                 .keyBy(AdtEvent::patientKey)
 
                 .process(patientLocationProcessFunction)
                 .name("Resolve Patient Location")
                 .uid("patient-location-resolver")
-
-                .sinkTo(sink)
-                .name("MongoDB Sink")
-                .uid("mongodb-sink");
+                .setParallelism(parallelism)
+                .name("Resolve Patient Location");
     }
 }

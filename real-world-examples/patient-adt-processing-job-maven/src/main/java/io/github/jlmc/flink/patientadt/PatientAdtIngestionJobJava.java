@@ -33,11 +33,31 @@ public class PatientAdtIngestionJobJava {
 
         StreamExecutionEnvironment env = StreamExecutionEnvironmentFactory.build(params);
 
-
         KafkaSource<Tuple2<String, AdtEvent>> source = AdtEventKafkaSourceFactory.build(bootstrapServers, topic, groupId);
 
         Sink<AdtPatientLastLocation> mongoSink = AdtPatientLastLocationMongoSinkFactory
                 .build(mongoUri, mongoDatabase, mongoCollection);
+
+        definePipeline(
+                env,
+                source,
+                mongoSink,
+                eventTtlDays,
+                dischargedTtlDays,
+                watermarkOutOfOrdernessMs
+        );
+
+        env.execute("PatientAdtIngestionJobJava");
+    }
+
+    public static void definePipeline(
+            StreamExecutionEnvironment env,
+            KafkaSource<Tuple2<String, AdtEvent>> source,
+            Sink<AdtPatientLastLocation> sink,
+            int eventTtlDays,
+            int dischargedTtlDays,
+            long watermarkOutOfOrdernessMs
+    ) {
 
 
         PatientLocationProcessFunction patientLocationProcessFunction = new PatientLocationProcessFunction(
@@ -67,11 +87,8 @@ public class PatientAdtIngestionJobJava {
                 .name("Resolve Patient Location")
                 .uid("patient-location-resolver")
 
-                .sinkTo(mongoSink)
+                .sinkTo(sink)
                 .name("MongoDB Sink")
                 .uid("mongodb-sink");
-
-
-        env.execute("PatientAdtIngestionJobJava");
     }
 }

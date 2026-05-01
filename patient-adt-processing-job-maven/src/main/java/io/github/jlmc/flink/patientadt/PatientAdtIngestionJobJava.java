@@ -2,7 +2,9 @@ package io.github.jlmc.flink.patientadt;
 
 import io.github.jlmc.flink.patientadt.components.AdtEventKeyedDeserializationSchema;
 import io.github.jlmc.flink.patientadt.components.JacksonSerializationSchema;
+import io.github.jlmc.flink.patientadt.components.statefull.PatientLocationProcessFunction;
 import io.github.jlmc.flink.patientadt.model.AdtEvent;
+import io.github.jlmc.flink.patientadt.model.AdtPatientLastLocation;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -12,17 +14,12 @@ import org.apache.flink.connector.kafka.sink.KafkaSink;
 import org.apache.flink.connector.kafka.source.KafkaSource;
 import org.apache.flink.connector.kafka.source.KafkaSourceOptions;
 import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer;
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 
-//         /usr/bin/kafka-topics --create --if-not-exists --topic adt-events-data --bootstrap-server kafka:19092 --partitions 1 --replication-factor 1
-//        /usr/bin/kafka-topics --create --if-not-exists --topic result-data --bootstrap-server kafka:19092 --partitions 1 --replication-factor 1
-//
 public class PatientAdtIngestionJobJava {
-
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     public static void main(String[] args) throws Exception {
         ParameterTool params = ParameterTool.fromArgs(args);
@@ -48,13 +45,15 @@ public class PatientAdtIngestionJobJava {
                 .build();
 
 
-        KafkaSink<AdtEvent> sink = KafkaSink.<AdtEvent>builder()
+        KafkaSink<AdtPatientLastLocation> sink = KafkaSink.<AdtPatientLastLocation>builder()
                 .setBootstrapServers(bootstrapServers)
                 .setRecordSerializer(
-                        KafkaRecordSerializationSchema.<AdtEvent>builder()
+                        KafkaRecordSerializationSchema.<AdtPatientLastLocation>builder()
                                 .setTopic("result-data")
-                                .setKeySerializationSchema((SerializationSchema<AdtEvent>) event ->
-                                        event.patientKey() == null ? null : event.patientKey().getBytes(StandardCharsets.UTF_8)
+                                .setKeySerializationSchema((SerializationSchema<AdtPatientLastLocation>) event ->
+                                        event == null || event.patientId() == null || event.accountId() == null
+                                                ? null
+                                                : (event.accountId() + "_" + event.patientId()).getBytes(StandardCharsets.UTF_8)
                                 )
                                 .setValueSerializationSchema(new JacksonSerializationSchema<>())
                                 .build()
@@ -63,7 +62,19 @@ public class PatientAdtIngestionJobJava {
 
 
         env.fromSource(source, WatermarkStrategy.noWatermarks(), "kafka-key-value-generator")
+
                 .map(it -> it.f1)
+                .name("Extract AdtEvent")
+                .uid("extract-adt-event")
+
+                .keyBy(AdtEvent::patientKey)
+
+                .process(new PatientLocationProcessFunction(
+                        Duration.ofDays(eventTtlDays),
+                        Duration.ofDays(dischargedTtlDays)
+                ))
+
+
                 .sinkTo(sink);
 
 

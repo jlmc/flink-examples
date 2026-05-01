@@ -2,6 +2,7 @@ package io.github.jlmc.flink.patientadt;
 
 import io.github.jlmc.flink.patientadt.components.serialization.AdtEventKeyedDeserializationSchema;
 import io.github.jlmc.flink.patientadt.components.statefull.PatientLocationProcessFunction;
+import io.github.jlmc.flink.patientadt.infrastructure.flink.StreamExecutionEnvironmentFactory;
 import io.github.jlmc.flink.patientadt.infrastructure.mongodb.AdtPatientLastLocationMongoSerializationSchema;
 import io.github.jlmc.flink.patientadt.model.AdtEvent;
 import io.github.jlmc.flink.patientadt.model.AdtPatientLastLocation;
@@ -12,11 +13,6 @@ import org.apache.flink.connector.mongodb.sink.MongoSink;
 import org.apache.flink.connector.kafka.source.KafkaSource;
 import org.apache.flink.connector.kafka.source.KafkaSourceOptions;
 import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer;
-import org.apache.flink.configuration.CheckpointingOptions;
-import org.apache.flink.configuration.Configuration;
-import org.apache.flink.runtime.state.hashmap.HashMapStateBackend;
-import org.apache.flink.streaming.api.CheckpointingMode;
-import org.apache.flink.streaming.api.environment.CheckpointConfig;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 
 import java.time.Duration;
@@ -35,31 +31,9 @@ public class PatientAdtIngestionJobJava {
         String mongoUri = params.get("mongoUri", "mongodb://admin:admin123@mongodb:27017");
         String mongoDatabase = params.get("mongoDatabase", "patient_adt");
         String mongoCollection = params.get("mongoCollection", "adt_patient_last_location");
-        long checkpointIntervalMs = params.getLong("checkpointIntervalMs", 30_000L);
-        long minPauseBetweenCheckpointsMs = params.getLong("minPauseBetweenCheckpointsMs", 10_000L);
-        long checkpointTimeoutMs = params.getLong("checkpointTimeoutMs", 2 * 60_000L);
-        int tolerableCheckpointFailureNumber = params.getInt("tolerableCheckpointFailureNumber", 3);
-        int maxConcurrentCheckpoints = params.getInt("maxConcurrentCheckpoints", 1);
         long watermarkOutOfOrdernessMs = params.getLong("watermarkOutOfOrdernessMs", 5_000L);
-        String checkpointsDirectory = params.get("checkpointsDirectory", "s3://flink-s3-bucket/patient-adt/checkpoints");
-        String savepointsDirectory = params.get("savepointsDirectory", "s3://flink-s3-bucket/patient-adt/savepoints");
 
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        env.setParallelism(parallelism);
-        Configuration runtimeConfig = new Configuration();
-        runtimeConfig.set(CheckpointingOptions.SAVEPOINT_DIRECTORY, savepointsDirectory);
-        env.configure(runtimeConfig);
-        env.setStateBackend(new HashMapStateBackend());
-        env.enableCheckpointing(checkpointIntervalMs, CheckpointingMode.EXACTLY_ONCE);
-        env.getCheckpointConfig().setCheckpointStorage(checkpointsDirectory);
-        env.getCheckpointConfig().setMinPauseBetweenCheckpoints(minPauseBetweenCheckpointsMs);
-        env.getCheckpointConfig().setCheckpointTimeout(checkpointTimeoutMs);
-        env.getCheckpointConfig().setTolerableCheckpointFailureNumber(tolerableCheckpointFailureNumber);
-        env.getCheckpointConfig().setMaxConcurrentCheckpoints(maxConcurrentCheckpoints);
-        env.getCheckpointConfig().enableExternalizedCheckpoints(
-                CheckpointConfig.ExternalizedCheckpointCleanup.RETAIN_ON_CANCELLATION
-        );
-        env.getCheckpointConfig().enableUnalignedCheckpoints();
+        StreamExecutionEnvironment env = StreamExecutionEnvironmentFactory.build(params);
 
         KafkaSource<Tuple2<String, AdtEvent>> source = KafkaSource.<Tuple2<String, AdtEvent>>builder()
                 .setBootstrapServers(bootstrapServers)

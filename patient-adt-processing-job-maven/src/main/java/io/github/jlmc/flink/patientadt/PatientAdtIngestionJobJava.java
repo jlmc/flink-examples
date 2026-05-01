@@ -1,22 +1,19 @@
 package io.github.jlmc.flink.patientadt;
 
 import io.github.jlmc.flink.patientadt.components.AdtEventKeyedDeserializationSchema;
-import io.github.jlmc.flink.patientadt.components.JacksonSerializationSchema;
 import io.github.jlmc.flink.patientadt.components.statefull.PatientLocationProcessFunction;
+import io.github.jlmc.flink.patientadt.infrastructure.mongodb.AdtPatientLastLocationMongoSerializationSchema;
 import io.github.jlmc.flink.patientadt.model.AdtEvent;
 import io.github.jlmc.flink.patientadt.model.AdtPatientLastLocation;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
-import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.utils.ParameterTool;
-import org.apache.flink.connector.kafka.sink.KafkaRecordSerializationSchema;
-import org.apache.flink.connector.kafka.sink.KafkaSink;
+import org.apache.flink.connector.mongodb.sink.MongoSink;
 import org.apache.flink.connector.kafka.source.KafkaSource;
 import org.apache.flink.connector.kafka.source.KafkaSourceOptions;
 import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
 public class PatientAdtIngestionJobJava {
@@ -30,6 +27,9 @@ public class PatientAdtIngestionJobJava {
         int parallelism = params.getInt("flinkParallelism", 1);
         int eventTtlDays = params.getInt("eventTtlInDays", 5);
         int dischargedTtlDays = params.getInt("dischargedTtlInDays", 2);
+        String mongoUri = params.get("mongoUri", "mongodb://admin:admin123@mongodb:27017");
+        String mongoDatabase = params.get("mongoDatabase", "patient_adt");
+        String mongoCollection = params.get("mongoCollection", "adt_patient_last_location");
 
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setParallelism(parallelism);
@@ -45,19 +45,11 @@ public class PatientAdtIngestionJobJava {
                 .build();
 
 
-        KafkaSink<AdtPatientLastLocation> sink = KafkaSink.<AdtPatientLastLocation>builder()
-                .setBootstrapServers(bootstrapServers)
-                .setRecordSerializer(
-                        KafkaRecordSerializationSchema.<AdtPatientLastLocation>builder()
-                                .setTopic("result-data")
-                                .setKeySerializationSchema((SerializationSchema<AdtPatientLastLocation>) event ->
-                                        event == null || event.patientId() == null || event.accountId() == null
-                                                ? null
-                                                : (event.accountId() + "_" + event.patientId()).getBytes(StandardCharsets.UTF_8)
-                                )
-                                .setValueSerializationSchema(new JacksonSerializationSchema<>())
-                                .build()
-                )
+        MongoSink<AdtPatientLastLocation> mongoSink = MongoSink.<AdtPatientLastLocation>builder()
+                .setUri(mongoUri)
+                .setDatabase(mongoDatabase)
+                .setCollection(mongoCollection)
+                .setSerializationSchema(new AdtPatientLastLocationMongoSerializationSchema())
                 .build();
 
 
@@ -77,12 +69,9 @@ public class PatientAdtIngestionJobJava {
                 .name("Resolve Patient Location")
                 .uid("patient-location-resolver")
 
-                //.sinkTo(mongoSink)
-                //.name("MongoDB Sink")
-                //.uid("mongodb-sink")
-
-
-                .sinkTo(sink);
+                .sinkTo(mongoSink)
+                .name("MongoDB Sink")
+                .uid("mongodb-sink");
 
 
         env.execute("PatientAdtIngestionJobJava");

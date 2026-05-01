@@ -11,4 +11,8 @@ public record AdtPatientLastLocation(
         boolean isActive,
         Instant expirationTimestamp,
         AdtEvent adtEvent) implements Serializable {
+
+    public String patientKey() {
+        return accountId + "_" + patientId;
+    }
 }

@@ -1,4 +1,4 @@
-package io.github.jlmc.flink.patientadt.components;
+package io.github.jlmc.flink.patientadt.components.serialization;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.api.common.serialization.SerializationSchema;

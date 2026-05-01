@@ -3,8 +3,11 @@
 # TOPIC and event volume (can be overridden)
 TOPIC="${TOPIC:-adt-events-data}"
 EVENT_COUNT="${EVENT_COUNT:-500}"
+ACCOUNT_COUNT="${ACCOUNT_COUNT:-10}"
+PATIENTS_PER_ACCOUNT="${PATIENTS_PER_ACCOUNT:-25}"
 
 echo "Submitting $EVENT_COUNT events to Kafka topic: $TOPIC"
+echo "Using $ACCOUNT_COUNT accounts and $PATIENTS_PER_ACCOUNT patients per account"
 
 # Produz eventos ADT válidos (HL7 Axx) em sequências por paciente.
 # Ciclo por paciente (5 passos):
@@ -20,8 +23,11 @@ generate_event() {
   PATIENT_SEQUENCE=$(((INDEX - 1) / 5))
   STEP=$(((INDEX - 1) % 5))
 
-  ACCOUNT_ID="acc-$((PATIENT_SEQUENCE % 10))"
-  PATIENT_ID="pat-$((100 + (PATIENT_SEQUENCE % 250)))"
+  ACCOUNT_INDEX=$((PATIENT_SEQUENCE % ACCOUNT_COUNT))
+  PATIENT_INDEX=$(((PATIENT_SEQUENCE / ACCOUNT_COUNT) % PATIENTS_PER_ACCOUNT))
+
+  ACCOUNT_ID="acc-$ACCOUNT_INDEX"
+  PATIENT_ID="pat-$((100 + ACCOUNT_INDEX * PATIENTS_PER_ACCOUNT + PATIENT_INDEX))"
   EVENT_KEY="${ACCOUNT_ID}_${PATIENT_ID}"
 
   BASE_WARD=$((PATIENT_SEQUENCE % 8))

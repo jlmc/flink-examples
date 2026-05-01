@@ -1,7 +1,7 @@
 package io.github.jlmc.flink.patientadt.components.serialization;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.github.jlmc.flink.patientadt.model.AdtEvent;
+import io.github.jlmc.flink.patientadt.app.model.AdtEvent;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeinfo.Types;

@@ -4,7 +4,7 @@ import com.mongodb.MongoClientSettings;
 import com.mongodb.client.model.ReplaceOneModel;
 import com.mongodb.client.model.ReplaceOptions;
 import com.mongodb.client.model.WriteModel;
-import io.github.jlmc.flink.patientadt.model.AdtPatientLastLocation;
+import io.github.jlmc.flink.patientadt.app.model.AdtPatientLastLocation;
 import org.apache.flink.connector.mongodb.sink.writer.context.MongoSinkContext;
 import org.apache.flink.connector.mongodb.sink.writer.serializer.MongoSerializationSchema;
 import org.bson.BsonDocument;

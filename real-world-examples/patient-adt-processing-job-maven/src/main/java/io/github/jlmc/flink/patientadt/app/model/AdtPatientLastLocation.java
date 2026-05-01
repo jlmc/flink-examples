@@ -1,4 +1,4 @@
-package io.github.jlmc.flink.patientadt.model;
+package io.github.jlmc.flink.patientadt.app.model;
 
 import java.io.Serializable;
 import java.time.Instant;

@@ -1,6 +1,6 @@
 package io.github.jlmc.flink.patientadt.components.serialization;
 
-import io.github.jlmc.flink.patientadt.model.AdtEvent;
+import io.github.jlmc.flink.patientadt.app.model.AdtEvent;
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.connector.kafka.sink.KafkaRecordSerializationSchema;

@@ -1,6 +1,6 @@
 package io.github.jlmc.flink.patientadt.infrastructure.mongodb;
 
-import io.github.jlmc.flink.patientadt.model.AdtPatientLastLocation;
+import io.github.jlmc.flink.patientadt.app.model.AdtPatientLastLocation;
 import org.bson.Document;
 
 import java.time.Instant;

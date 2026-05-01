@@ -1,4 +1,4 @@
-package io.github.jlmc.flink.patientadt.model;
+package io.github.jlmc.flink.patientadt.app.model;
 
 import java.util.Arrays;
 import java.util.EnumSet;

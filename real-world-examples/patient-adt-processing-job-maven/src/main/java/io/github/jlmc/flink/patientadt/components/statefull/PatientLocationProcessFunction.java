@@ -1,7 +1,8 @@
 package io.github.jlmc.flink.patientadt.components.statefull;
 
-import io.github.jlmc.flink.patientadt.model.AdtEvent;
-import io.github.jlmc.flink.patientadt.model.AdtPatientLastLocation;
+import io.github.jlmc.flink.patientadt.app.services.AdtPatientLastLocationResolver;
+import io.github.jlmc.flink.patientadt.app.model.AdtEvent;
+import io.github.jlmc.flink.patientadt.app.model.AdtPatientLastLocation;
 import org.apache.flink.api.common.functions.OpenContext;
 import org.apache.flink.api.common.state.MapState;
 import org.apache.flink.api.common.state.MapStateDescriptor;

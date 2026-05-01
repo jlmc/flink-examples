@@ -1,8 +1,8 @@
-package io.github.jlmc.flink.patientadt.components.statefull;
+package io.github.jlmc.flink.patientadt.app.services;
 
-import io.github.jlmc.flink.patientadt.model.AdtEvent;
-import io.github.jlmc.flink.patientadt.model.AdtEventType;
-import io.github.jlmc.flink.patientadt.model.AdtPatientLastLocation;
+import io.github.jlmc.flink.patientadt.app.model.AdtEvent;
+import io.github.jlmc.flink.patientadt.app.model.AdtEventType;
+import io.github.jlmc.flink.patientadt.app.model.AdtPatientLastLocation;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -26,7 +26,7 @@ public class AdtPatientLastLocationResolver {
         this.clock = clock;
     }
 
-    AdtPatientLastLocation resolveLatestValid(
+    public AdtPatientLastLocation resolveLatestValid(
             Collection<AdtEvent> events,
             Duration dischargedTtl
     ) {
@@ -34,7 +34,7 @@ public class AdtPatientLastLocationResolver {
             return null;
         }
 
-        // 1. Ordenação cronológica (Essencial para o pareamento de cancelamentos)
+        // 1. Ordenação cronológica (Essencial para o paramento de cancelamentos)
         List<AdtEvent> sortedEvents = new LinkedList<>(events);
         sortedEvents.sort(COMPARING);
 

@@ -1,7 +1,8 @@
 package io.github.jlmc.flink.patientadt.components.statefull;
 
-import io.github.jlmc.flink.patientadt.model.AdtEvent;
-import io.github.jlmc.flink.patientadt.model.AdtPatientLastLocation;
+import io.github.jlmc.flink.patientadt.app.services.AdtPatientLastLocationResolver;
+import io.github.jlmc.flink.patientadt.app.model.AdtEvent;
+import io.github.jlmc.flink.patientadt.app.model.AdtPatientLastLocation;
 import org.junit.jupiter.api.Test;
 
 import java.time.Clock;

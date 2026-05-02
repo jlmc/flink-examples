@@ -1,5 +1,6 @@
 package io.github.jlmc.flink.locationscsv.application.validation;
 
+import io.github.jlmc.flink.locationscsv.domain.entity.Location;
 import io.github.jlmc.flink.locationscsv.domain.entity.ValidationError;
 import io.github.jlmc.flink.locationscsv.source.S3ObjectCsvReaderFlatMap;
 import org.apache.flink.api.common.functions.OpenContext;
@@ -16,7 +17,7 @@ public class LocationWithSourceBusinessValidator extends ProcessFunction<S3Objec
     public static final OutputTag<ValidationError> ERROR_TAG = new OutputTag<ValidationError>("validation-errors") {
     };
 
-    private transient List<ValidatorRule<io.github.jlmc.flink.locationscsv.domain.entity.Location>> rules;
+    private transient List<ValidatorRule<Location>> rules;
     private transient long recordCounter;
 
     @Override
@@ -26,7 +27,7 @@ public class LocationWithSourceBusinessValidator extends ProcessFunction<S3Objec
         recordCounter++;
 
         List<ValidatorRule.Violation> allViolations = new ArrayList<>();
-        for (ValidatorRule<io.github.jlmc.flink.locationscsv.domain.entity.Location> rule : rules) {
+        for (ValidatorRule<Location> rule : rules) {
             allViolations.addAll(rule.validate(row.location()));
         }
 

@@ -3,6 +3,7 @@ package io.github.jlmc.flink.locationscsv;
 import io.github.jlmc.flink.locationscsv.application.validation.LocationWithSourceBusinessValidator;
 import io.github.jlmc.flink.locationscsv.source.S3CsvObjectsFromSqsSource;
 import io.github.jlmc.flink.locationscsv.source.S3ObjectCsvReaderFlatMap;
+import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.connector.jdbc.JdbcConnectionOptions;
 import org.apache.flink.connector.jdbc.JdbcExecutionOptions;
 import org.apache.flink.connector.jdbc.core.datastream.sink.JdbcSink;
@@ -27,7 +28,10 @@ public class LocationsCsvSqsIngestionJob {
         env.enableCheckpointing(60000);
 
         DataStream<S3ObjectCsvReaderFlatMap.LocationWithSource> locationsFromSqsEvents = env
-                .addSource(new S3CsvObjectsFromSqsSource(AWS_ENDPOINT, AWS_REGION, AWS_ACCESS_KEY, AWS_SECRET_KEY, SQS_QUEUE_URL))
+                .fromSource(
+                        new S3CsvObjectsFromSqsSource(AWS_ENDPOINT, AWS_REGION, AWS_ACCESS_KEY, AWS_SECRET_KEY, SQS_QUEUE_URL),
+                        WatermarkStrategy.noWatermarks(),
+                        "sqs-s3-events")
                 .name("sqs-s3-events")
                 .flatMap(new S3ObjectCsvReaderFlatMap(AWS_ENDPOINT, AWS_REGION, AWS_ACCESS_KEY, AWS_SECRET_KEY))
                 .name("read-csv-from-s3-object");

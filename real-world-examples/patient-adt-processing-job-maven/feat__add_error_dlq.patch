@@ -1,0 +1,467 @@
+Subject: [PATCH] feat: add Dozzle for real-time Docker log monitoring and update documentation
+---
+Index: src/main/java/io/github/jlmc/flink/patientadt/infrastructure/kafka/AdtEventKafkaStringSinkFactory.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/io/github/jlmc/flink/patientadt/infrastructure/kafka/AdtEventKafkaStringSinkFactory.java b/src/main/java/io/github/jlmc/flink/patientadt/infrastructure/kafka/AdtEventKafkaStringSinkFactory.java
+new file mode 100644
+--- /dev/null	(date 1777682137028)
++++ b/src/main/java/io/github/jlmc/flink/patientadt/infrastructure/kafka/AdtEventKafkaStringSinkFactory.java	(date 1777682137028)
+@@ -0,0 +1,24 @@
++package io.github.jlmc.flink.patientadt.infrastructure.kafka;
++
++import org.apache.flink.api.common.serialization.SimpleStringSchema;
++import org.apache.flink.api.connector.sink2.Sink;
++import org.apache.flink.connector.kafka.sink.KafkaRecordSerializationSchema;
++import org.apache.flink.connector.kafka.sink.KafkaSink;
++
++public final class AdtEventKafkaStringSinkFactory {
++
++    private AdtEventKafkaStringSinkFactory() {
++    }
++
++    public static Sink<String> build(String bootstrapServers, String topic) {
++        return KafkaSink.<String>builder()
++                .setBootstrapServers(bootstrapServers)
++                .setRecordSerializer(
++                        KafkaRecordSerializationSchema.builder()
++                                .setTopic(topic)
++                                .setValueSerializationSchema(new SimpleStringSchema())
++                                .build()
++                )
++                .build();
++    }
++}
+Index: src/test/java/io/github/jlmc/flink/patientadt/PatientAdtIngestionJobJavaTest.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/test/java/io/github/jlmc/flink/patientadt/PatientAdtIngestionJobJavaTest.java b/src/test/java/io/github/jlmc/flink/patientadt/PatientAdtIngestionJobJavaTest.java
+--- a/src/test/java/io/github/jlmc/flink/patientadt/PatientAdtIngestionJobJavaTest.java	(revision ad1e092c69fc7a930be7d12278e8f1c6b09d034e)
++++ b/src/test/java/io/github/jlmc/flink/patientadt/PatientAdtIngestionJobJavaTest.java	(date 1777682193366)
+@@ -2,6 +2,7 @@
+ 
+ import io.github.jlmc.flink.patientadt.app.model.AdtEvent;
+ import io.github.jlmc.flink.patientadt.app.model.AdtPatientLastLocation;
++import org.apache.flink.api.common.typeinfo.Types;
+ import org.apache.flink.api.java.tuple.Tuple2;
+ import org.apache.flink.streaming.api.functions.sink.SinkFunction;
+ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+@@ -25,6 +26,7 @@
+     @BeforeEach
+     void setUp() {
+         CollectListSink.clear();
++        CollectStringSink.clear();
+     }
+ 
+     @Test
+@@ -77,11 +79,63 @@
+                         (left, right) -> right
+                 ));
+ 
+-        assertEquals(parallelism, operatorsParallelism.get("Extract AdtEvent"));
++        assertEquals(parallelism, operatorsParallelism.get("Validate AdtEvent"));
+         assertEquals(parallelism, operatorsParallelism.get("Resolve Patient Location"));
+         assertTrue(operatorsParallelism.size() >= 3);
+     }
+ 
++    @Test
++    void shouldRouteInvalidJsonLikeEventsToDlq() throws Exception {
++        StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironment(2);
++
++        List<Tuple2<String, AdtEvent>> inputEvents = List.of(
++                Tuple2.of("ACC_1_PAT_1", null),
++                Tuple2.of("ACC_1_PAT_1", event("ACC_1", "PAT_1", "A01", "WARD-A", "2026-01-01T08:00:00Z"))
++        );
++
++        PatientAdtIngestionJobJava.PipelineResult result = PatientAdtIngestionJobJava.definePipelineWithDlq(
++                env.fromCollection(inputEvents, Types.TUPLE(Types.STRING, Types.POJO(AdtEvent.class))),
++                1,
++                5,
++                2
++        );
++
++        result.mainStream().addSink(new CollectListSink());
++        result.dlqStream().addSink(new CollectStringSink());
++
++        env.execute("shouldRouteInvalidJsonLikeEventsToDlq");
++
++        assertTrue(CollectListSink.values().stream().anyMatch(it -> "PAT_1".equals(it.patientId())));
++        assertTrue(CollectStringSink.values().stream().anyMatch(it -> it.contains("INVALID_JSON")));
++    }
++
++    @Test
++    void shouldRouteProcessingErrorsToDlq() throws Exception {
++        StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironment(2);
++
++        AdtEvent invalidForProcessing = event("ACC_1", "PAT_1", "A01", "WARD-A", "2026-01-01T08:00:00Z");
++        invalidForProcessing.eventTimestamp = null;
++
++        List<Tuple2<String, AdtEvent>> inputEvents = List.of(
++                Tuple2.of("ACC_1_PAT_1", invalidForProcessing)
++        );
++
++        PatientAdtIngestionJobJava.PipelineResult result = PatientAdtIngestionJobJava.definePipelineWithDlq(
++                env.fromCollection(inputEvents),
++                1,
++                5,
++                2
++        );
++
++        result.mainStream().addSink(new CollectListSink());
++        result.dlqStream().addSink(new CollectStringSink());
++
++        env.execute("shouldRouteProcessingErrorsToDlq");
++
++        assertTrue(CollectListSink.values().isEmpty());
++        assertTrue(CollectStringSink.values().stream().anyMatch(it -> it.contains("INVALID_EVENT") || it.contains("PROCESSING_ERROR")));
++    }
++
+     private static AdtEvent event(String accountId, String patientId, String eventType, String locationId, String eventTimestamp) {
+         AdtEvent event = new AdtEvent();
+         event.accountId = accountId;
+@@ -103,6 +157,23 @@
+         static List<AdtPatientLastLocation> values() {
+             return VALUES;
+         }
++
++        static void clear() {
++            VALUES.clear();
++        }
++    }
++
++    private static class CollectStringSink implements SinkFunction<String> {
++        private static final List<String> VALUES = new CopyOnWriteArrayList<>();
++
++        @Override
++        public void invoke(String value, Context context) {
++            VALUES.add(value);
++        }
++
++        static List<String> values() {
++            return VALUES;
++        }
+ 
+         static void clear() {
+             VALUES.clear();
+Index: docker-compose.yaml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/docker-compose.yaml b/docker-compose.yaml
+--- a/docker-compose.yaml	(revision ad1e092c69fc7a930be7d12278e8f1c6b09d034e)
++++ b/docker-compose.yaml	(date 1777682071240)
+@@ -123,6 +123,7 @@
+       - -c
+       - |
+         /usr/bin/kafka-topics --create --if-not-exists --topic adt-events-data --bootstrap-server kafka:19092 --partitions 1 --replication-factor 1
++        /usr/bin/kafka-topics --create --if-not-exists --topic adt-events-data-dlq --bootstrap-server kafka:19092 --partitions 1 --replication-factor 1
+         /usr/bin/kafka-topics --create --if-not-exists --topic result-data --bootstrap-server kafka:19092 --partitions 1 --replication-factor 1
+     depends_on:
+       kafka:
+Index: src/main/java/io/github/jlmc/flink/patientadt/components/statefull/PatientLocationProcessFunction.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/io/github/jlmc/flink/patientadt/components/statefull/PatientLocationProcessFunction.java b/src/main/java/io/github/jlmc/flink/patientadt/components/statefull/PatientLocationProcessFunction.java
+--- a/src/main/java/io/github/jlmc/flink/patientadt/components/statefull/PatientLocationProcessFunction.java	(revision ad1e092c69fc7a930be7d12278e8f1c6b09d034e)
++++ b/src/main/java/io/github/jlmc/flink/patientadt/components/statefull/PatientLocationProcessFunction.java	(date 1777682145643)
+@@ -9,6 +9,7 @@
+ import org.apache.flink.api.common.state.StateTtlConfig;
+ import org.apache.flink.streaming.api.functions.KeyedProcessFunction;
+ import org.apache.flink.util.Collector;
++import org.apache.flink.util.OutputTag;
+ import org.slf4j.Logger;
+ 
+ import java.time.Duration;
+@@ -25,6 +26,7 @@
+ 
+     private final Duration eventTtl;
+     private final Duration dischargedTtl;
++    private final OutputTag<String> dlqOutputTag;
+ 
+     // Estado que guarda o histórico: Timestamp -> Evento
+     // Usamos MapState porque é mais eficiente para checkpoints do que ListState se precisarmos de remover itens específicos.
+@@ -33,12 +35,17 @@
+ 
+ 
+     public PatientLocationProcessFunction() {
+-        this(Duration.ofDays(7L), Duration.ofDays(30L));
++        this(Duration.ofDays(7L), Duration.ofDays(30L), null);
+     }
+ 
+     public PatientLocationProcessFunction(Duration eventTtl, Duration dischargedTtl) {
++        this(eventTtl, dischargedTtl, null);
++    }
++
++    public PatientLocationProcessFunction(Duration eventTtl, Duration dischargedTtl, OutputTag<String> dlqOutputTag) {
+         this.eventTtl = eventTtl;
+         this.dischargedTtl = dischargedTtl;
++        this.dlqOutputTag = dlqOutputTag;
+     }
+ 
+     @Override
+@@ -72,19 +79,41 @@
+             AdtEvent event,
+             KeyedProcessFunction<String, AdtEvent, AdtPatientLastLocation>.Context ctx, Collector<AdtPatientLastLocation> out
+     ) throws Exception {
+-        LOGGER.info("Processing event [accountId: {} patientId: {}], at {} for patient {}", event.accountId, event.patientId,  event.eventTimestamp, event.patientId);
++        try {
++            LOGGER.info("Processing event [accountId: {} patientId: {}], at {} for patient {}", event.accountId, event.patientId, event.eventTimestamp, event.patientId);
+ 
+-        // 1. Persist the event in the MapState using its timestamp as the key
+-        long epochMilli = event.eventTimestamp.toEpochMilli();
+-        patientAdtEventsHistoryState.put(epochMilli, event);
++            // 1. Persist the event in the MapState using its timestamp as the key
++            long epochMilli = event.eventTimestamp.toEpochMilli();
++            patientAdtEventsHistoryState.put(epochMilli, event);
+ 
+-        AdtPatientLastLocation adtPatientLastLocation = resolveLatestValid();
++            AdtPatientLastLocation adtPatientLastLocation = resolveLatestValid();
+ 
+-        if (adtPatientLastLocation != null) {
+-            LOGGER.info("Emitting latest valid location for [accountId: {} patientId: {}]: {}", event.accountId, event.patientId, adtPatientLastLocation);
+-            out.collect(adtPatientLastLocation);
++            if (adtPatientLastLocation != null) {
++                LOGGER.info("Emitting latest valid location for [accountId: {} patientId: {}]: {}", event.accountId, event.patientId, adtPatientLastLocation);
++                out.collect(adtPatientLastLocation);
++            }
++        } catch (Exception e) {
++            LOGGER.error("Error processing event [accountId: {} patientId: {}]: {}", event.accountId, event.patientId, e.getMessage(), e);
++            if (dlqOutputTag != null) {
++                ctx.output(dlqOutputTag, String.format(
++                        "{\"errorType\":\"PROCESSING_ERROR\",\"reason\":\"%s\",\"accountId\":\"%s\",\"patientId\":\"%s\",\"eventType\":\"%s\"}",
++                        sanitize(e.getMessage()),
++                        sanitize(event.accountId),
++                        sanitize(event.patientId),
++                        sanitize(event.eventType)
++                ));
++            } else {
++                throw e;
++            }
+         }
+     }
++
++    private static String sanitize(String value) {
++        if (value == null) {
++            return "";
++        }
++        return value.replace("\\", "\\\\").replace("\"", "\\\"");
++    }
+ 
+     private AdtPatientLastLocation resolveLatestValid() throws Exception {
+         try {
+Index: src/main/java/io/github/jlmc/flink/patientadt/components/serialization/AdtEventKeyedDeserializationSchema.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/io/github/jlmc/flink/patientadt/components/serialization/AdtEventKeyedDeserializationSchema.java b/src/main/java/io/github/jlmc/flink/patientadt/components/serialization/AdtEventKeyedDeserializationSchema.java
+--- a/src/main/java/io/github/jlmc/flink/patientadt/components/serialization/AdtEventKeyedDeserializationSchema.java	(revision ad1e092c69fc7a930be7d12278e8f1c6b09d034e)
++++ b/src/main/java/io/github/jlmc/flink/patientadt/components/serialization/AdtEventKeyedDeserializationSchema.java	(date 1777682152094)
+@@ -43,10 +43,17 @@
+             LOGGER.warn("Received null key");
+         }
+ 
+-        // Deserialize the value (using JSON as an example)
+-        AdtEvent value = record.value() != null
+-                ? valueDeserializer.deserialize(record.value())
+-                : null;
++        AdtEvent value;
++        try {
++            // Deserialize the value (using JSON as an example)
++            value = record.value() != null
++                    ? valueDeserializer.deserialize(record.value())
++                    : null;
++        } catch (Exception e) {
++            LOGGER.error("Invalid JSON payload for key {}. Sending null event downstream for DLQ routing.", key, e);
++            collector.collect(Tuple2.of(key, null));
++            return;
++        }
+ 
+         if (value == null) {
+             LOGGER.warn("Received null value for key {}", key);
+Index: src/main/java/io/github/jlmc/flink/patientadt/PatientAdtIngestionJobJava.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/java/io/github/jlmc/flink/patientadt/PatientAdtIngestionJobJava.java b/src/main/java/io/github/jlmc/flink/patientadt/PatientAdtIngestionJobJava.java
+--- a/src/main/java/io/github/jlmc/flink/patientadt/PatientAdtIngestionJobJava.java	(revision ad1e092c69fc7a930be7d12278e8f1c6b09d034e)
++++ b/src/main/java/io/github/jlmc/flink/patientadt/PatientAdtIngestionJobJava.java	(date 1777734855582)
+@@ -5,6 +5,7 @@
+ import io.github.jlmc.flink.patientadt.components.statefull.PatientLocationProcessFunction;
+ import io.github.jlmc.flink.patientadt.infrastructure.flink.StreamExecutionEnvironmentFactory;
+ import io.github.jlmc.flink.patientadt.infrastructure.kafka.AdtEventKafkaSourceFactory;
++import io.github.jlmc.flink.patientadt.infrastructure.kafka.AdtEventKafkaStringSinkFactory;
+ import io.github.jlmc.flink.patientadt.infrastructure.mongodb.AdtPatientLastLocationMongoSinkFactory;
+ import org.apache.flink.api.common.eventtime.WatermarkStrategy;
+ import org.apache.flink.api.connector.sink2.Sink;
+@@ -12,17 +13,25 @@
+ import org.apache.flink.api.java.tuple.Tuple2;
+ import org.apache.flink.api.java.utils.ParameterTool;
+ import org.apache.flink.streaming.api.datastream.DataStream;
++import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
+ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
++import org.apache.flink.streaming.api.functions.ProcessFunction;
++import org.apache.flink.util.Collector;
++import org.apache.flink.util.OutputTag;
+ 
+ import java.time.Duration;
+ 
+ public class PatientAdtIngestionJobJava {
+ 
++    private static final OutputTag<String> DLQ_OUTPUT_TAG = new OutputTag<>("adt-events-dlq") {
++    };
++
+     public static void main(String[] args) throws Exception {
+         ParameterTool params = ParameterTool.fromArgs(args);
+ 
+         String bootstrapServers = params.get("kafkaBootstrapServers", "kafka:19092");
+         String topic = params.get("kafkaTopic", "adt-events-data");
++        String dlqTopic = params.get("kafkaDlqTopic", "adt-events-data-dlq");
+         String groupId = params.get("kafkaGroupId", "patient-adt-processing-job-java");
+         int parallelism = params.getInt("flinkParallelism", 1);
+         int eventTtlDays = params.getInt("eventTtlInDays", 5);
+@@ -39,10 +48,14 @@
+         Sink<AdtPatientLastLocation> mongoSink = AdtPatientLastLocationMongoSinkFactory
+                 .build(mongoUri, mongoDatabase, mongoCollection);
+ 
++        Sink<String> kafkaDlqSink = AdtEventKafkaStringSinkFactory
++                .build(bootstrapServers, dlqTopic);
++
+         definePipeline(
+                 env,
+                 source,
+                 mongoSink,
++                kafkaDlqSink,
+                 parallelism,
+                 eventTtlDays,
+                 dischargedTtlDays,
+@@ -56,6 +69,7 @@
+             StreamExecutionEnvironment env,
+             Source<Tuple2<String, AdtEvent>, ?, ?> source,
+             Sink<AdtPatientLastLocation> sink,
++            Sink<String> dlqSink,
+             int parallelism,
+             int eventTtlDays,
+             int dischargedTtlDays,
+@@ -75,11 +89,19 @@
+                 .setParallelism(parallelism)
+                 .name("Kafka Source");
+ 
+-        definePipeline(sourceStream, parallelism, eventTtlDays, dischargedTtlDays)
++        PipelineResult pipelineResult = definePipelineWithDlq(sourceStream, parallelism, eventTtlDays, dischargedTtlDays);
++
++        pipelineResult.mainStream()
+                 .sinkTo(sink)
+                 .name("MongoDB Sink")
+                 .uid("mongodb-sink")
+                 .setParallelism(parallelism);
++
++        pipelineResult.dlqStream()
++                .sinkTo(dlqSink)
++                .name("Kafka DLQ Sink")
++                .uid("kafka-dlq-sink")
++                .setParallelism(parallelism);
+     }
+ 
+     public static DataStream<AdtPatientLastLocation> definePipeline(
+@@ -88,23 +110,84 @@
+             int eventTtlDays,
+             int dischargedTtlDays
+     ) {
++        return definePipelineWithDlq(sourceStream, parallelism, eventTtlDays, dischargedTtlDays).mainStream();
++    }
++
++    public static PipelineResult definePipelineWithDlq(
++            DataStream<Tuple2<String, AdtEvent>> sourceStream,
++            int parallelism,
++            int eventTtlDays,
++            int dischargedTtlDays
++    ) {
++        SingleOutputStreamOperator<AdtEvent> validEventsStream = sourceStream
++                .process(new ProcessFunction<Tuple2<String, AdtEvent>, AdtEvent>() {
++                    @Override
++                    public void processElement(Tuple2<String, AdtEvent> value,
++                                               ProcessFunction<Tuple2<String, AdtEvent>, AdtEvent>.Context ctx,
++                                               Collector<AdtEvent> out) {
++                        if (value == null || value.f1 == null) {
++                            String key = value != null ? value.f0 : null;
++                            ctx.output(DLQ_OUTPUT_TAG, buildDlqMessage("INVALID_JSON", "Unable to deserialize input message", key, null));
++                            return;
++                        }
++
++                        AdtEvent event = value.f1;
++                        if (event.getAccountId() == null || event.getPatientId() == null || event.getEventTimestamp() == null) {
++                            ctx.output(DLQ_OUTPUT_TAG, buildDlqMessage("INVALID_EVENT", "Missing required fields for processing", value.f0, event));
++                            return;
++                        }
++
++                        out.collect(event);
++                    }
++                })
++                .name("Validate AdtEvent")
++                .uid("validate-adt-event")
++                .setParallelism(parallelism);
++
+         PatientLocationProcessFunction patientLocationProcessFunction = new PatientLocationProcessFunction(
+                 Duration.ofDays(eventTtlDays),
+-                Duration.ofDays(dischargedTtlDays)
++                Duration.ofDays(dischargedTtlDays),
++                DLQ_OUTPUT_TAG
+         );
+ 
+-        return sourceStream
+-                .map(tuple -> tuple.f1)
+-                .name("Extract AdtEvent")
+-                .uid("extract-adt-event")
+-                .setParallelism(parallelism)
+-
++        SingleOutputStreamOperator<AdtPatientLastLocation> mainStream = validEventsStream
+                 .keyBy(AdtEvent::patientKey)
+-
+                 .process(patientLocationProcessFunction)
+                 .name("Resolve Patient Location")
+                 .uid("patient-location-resolver")
+                 .setParallelism(parallelism)
+                 .name("Resolve Patient Location");
++
++        DataStream<String> dlqStream = validEventsStream.getSideOutput(DLQ_OUTPUT_TAG)
++                .union(mainStream.getSideOutput(DLQ_OUTPUT_TAG));
++
++        return new PipelineResult(mainStream, dlqStream);
++    }
++
++    public record PipelineResult(DataStream<AdtPatientLastLocation> mainStream, DataStream<String> dlqStream) {
++    }
++
++    private static String buildDlqMessage(String errorType, String reason, String key, AdtEvent event) {
++        String accountId = event != null ? event.getAccountId() : null;
++        String patientId = event != null ? event.getPatientId() : null;
++        String eventType = event != null ? event.getEventType() : null;
++
++        return String.format(
++                """
++                {"errorType":"%s","reason":"%s","key":"%s","accountId":"%s","patientId":"%s","eventType":"%s"}""",
++                sanitize(errorType),
++                sanitize(reason),
++                sanitize(key),
++                sanitize(accountId),
++                sanitize(patientId),
++                sanitize(eventType)
++        );
++    }
++
++    private static String sanitize(String value) {
++        if (value == null) {
++            return "";
++        }
++        return value.replace("\\", "\\\\").replace("\"", "\\\"");
+     }
+ }

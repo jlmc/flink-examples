@@ -4,11 +4,21 @@ services:
     container_name: jobmanager
     ports:
       - "8081:8081"
-    command: jobmanager
+    command: >
+      sh -c "
+      mkdir -p /opt/flink/plugins/flink-metrics-prometheus &&
+      if [ ! -f /opt/flink/plugins/flink-metrics-prometheus/flink-metrics-prometheus-1.20.3.jar ]; then
+        wget -q -O /opt/flink/plugins/flink-metrics-prometheus/flink-metrics-prometheus-1.20.3.jar https://repo1.maven.org/maven2/org/apache/flink/flink-metrics-prometheus/1.20.3/flink-metrics-prometheus-1.20.3.jar;
+      fi &&
+      exec /docker-entrypoint.sh jobmanager
+      "
     environment:
       - |
         FLINK_PROPERTIES=
         jobmanager.rpc.address: jobmanager
+        metrics.reporters: prom
+        metrics.reporter.prom.factory.class: org.apache.flink.metrics.prometheus.PrometheusReporterFactory
+        metrics.reporter.prom.port: 9249
         fs.allowed-fallback-filesystems: s3
         s3.access-key: minio
         s3.secret-key: minio123
@@ -38,13 +48,23 @@ services:
     container_name: taskmanager
     depends_on:
       - jobmanager
-    command: taskmanager
+    command: >
+      sh -c "
+      mkdir -p /opt/flink/plugins/flink-metrics-prometheus &&
+      if [ ! -f /opt/flink/plugins/flink-metrics-prometheus/flink-metrics-prometheus-1.20.3.jar ]; then
+        wget -q -O /opt/flink/plugins/flink-metrics-prometheus/flink-metrics-prometheus-1.20.3.jar https://repo1.maven.org/maven2/org/apache/flink/flink-metrics-prometheus/1.20.3/flink-metrics-prometheus-1.20.3.jar;
+      fi &&
+      exec /docker-entrypoint.sh taskmanager
+      "
     scale: 1
     environment:
       - |
         FLINK_PROPERTIES=
         jobmanager.rpc.address: jobmanager
         taskmanager.numberOfTaskSlots: 2
+        metrics.reporters: prom
+        metrics.reporter.prom.factory.class: org.apache.flink.metrics.prometheus.PrometheusReporterFactory
+        metrics.reporter.prom.port: 9249
         fs.allowed-fallback-filesystems: s3
         s3.access-key: minio
         s3.secret-key: minio123
@@ -186,6 +206,59 @@ services:
       timeout: 5s
       retries: 10
       start_period: 20s
+    networks:
+      - adt-demo
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docker/observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    depends_on:
+      - jobmanager
+      - taskmanager
+    networks:
+      - adt-demo
+
+  loki:
+    image: grafana/loki:3.1.1
+    container_name: loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./docker/observability/loki/loki-config.yaml:/etc/loki/local-config.yaml:ro
+    networks:
+      - adt-demo
+
+  promtail:
+    image: grafana/promtail:3.1.1
+    container_name: promtail
+    command: -config.file=/etc/promtail/config.yml
+    volumes:
+      - ./docker/observability/promtail/promtail-config.yml:/etc/promtail/config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    depends_on:
+      - loki
+    networks:
+      - adt-demo
+
+  grafana:
+    image: grafana/grafana:11.1.4
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./docker/observability/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+      - loki
     networks:
       - adt-demo
 

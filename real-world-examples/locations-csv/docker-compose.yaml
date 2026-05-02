@@ -1,0 +1,53 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: locations_postgres
+    environment:
+      POSTGRES_DB: locations_db
+      POSTGRES_USER: locations_user
+      POSTGRES_PASSWORD: locations_password
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U locations_user -d locations_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  postgres_setup:
+    image: postgres:16
+    container_name: locations_postgres_setup
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: locations_password
+    command:
+      - psql
+      - -h
+      - postgres
+      - -U
+      - locations_user
+      - -d
+      - locations_db
+      - -c
+      - |
+        CREATE TABLE IF NOT EXISTS staging_locations (
+          id BIGSERIAL PRIMARY KEY,
+          name TEXT NOT NULL,
+          lat DOUBLE PRECISION,
+          lon DOUBLE PRECISION,
+          img_url TEXT,
+          source_file_path TEXT NOT NULL,
+          ingested_at TIMESTAMPTZ DEFAULT NOW()
+        );
+        CREATE TABLE IF NOT EXISTS locations (
+          id BIGSERIAL PRIMARY KEY,
+          name TEXT NOT NULL,
+          lat DOUBLE PRECISION,
+          lon DOUBLE PRECISION,
+          img_url TEXT,
+          created_at TIMESTAMPTZ DEFAULT NOW(),
+          updated_at TIMESTAMPTZ DEFAULT NOW()
+        );
+    restart: "no"

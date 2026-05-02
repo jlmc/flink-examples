@@ -18,5 +18,6 @@
     <modules>
         <module>patient-adt-processing-job-maven</module>
         <module>locations-csv</module>
+        <module>locations-csv-sqs-events</module>
     </modules>
 </project>

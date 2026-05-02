@@ -1,5 +1,5 @@
 name,lat,lon,imgUrl
-Lisbon,38.7223,-9.1393,https://example.com/lisbon.jpg
-Porto,41.1579,-8.6291,https://example.com/porto.jpg
-Madrid,40.4168,-3.7038,https://example.com/madrid.jpg
-Paris,48.8566,2.3522,https://example.com/paris.jpg
+Lisbon,38.7223,-9.1393,https://placehold.co/600x400/png?text=Lisbon
+Porto,41.1579,-8.6291,https://placehold.co/600x400/png?text=Porto
+Madrid,40.4168,-3.7038,https://placehold.co/600x400/png?text=Madrid
+Paris,48.8566,2.3522,https://placehold.co/600x400/png?text=Paris

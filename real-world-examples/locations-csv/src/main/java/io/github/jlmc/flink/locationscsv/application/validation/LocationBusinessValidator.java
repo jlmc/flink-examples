@@ -43,7 +43,8 @@ public class LocationBusinessValidator extends ProcessFunction<Location, Locatio
         
         rules = List.of(
                 new GeoRangeValidator(),
-                new ImageAccessibilityValidator()
+                new ImageUrlValidator(),
+                new UrlImageAccessibleValidator()
         );
     }
 

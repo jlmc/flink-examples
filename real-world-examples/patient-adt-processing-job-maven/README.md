@@ -39,6 +39,7 @@ flowchart LR
 - `prometheus`: scrapes Flink metrics from `jobmanager` and `taskmanager`.
 - `loki`: centralized log storage backend.
 - `promtail`: collects Docker logs (notably `jobmanager` and `taskmanager`) and sends them to Loki.
+- `dozzle`: lightweight web UI for real-time Docker logs, useful for quick troubleshooting.
 - `grafana`: centralized UI for both metrics (Prometheus datasource) and logs (Loki datasource), including the provisioned dashboard.
 
 ## Infrastructure network diagram
@@ -127,6 +128,7 @@ docker compose up -d
 - Kafka UI: `http://localhost:8085`
 - MinIO Console: `http://localhost:9001`
 - Grafana (centralized logs + metrics): `http://localhost:3000` (user: `admin`, password: `admin`)
+- Dozzle (real-time Docker logs): `http://localhost:8088`
 - Prometheus: `http://localhost:9090`
 - Loki API: `http://localhost:3100`
 
@@ -141,7 +143,13 @@ This stack now includes a centralized observability layer:
 - `Prometheus` scrapes Flink metrics from JobManager and TaskManager.
 - `Loki` stores container logs.
 - `Promtail` collects Docker logs from Flink containers (`jobmanager`, `taskmanager`) and ships them to Loki.
-- `Grafana` is the single UI to query both metrics and logs.
+- `Grafana` remains the central UI to query both metrics and logs.
+- `Dozzle` provides a dedicated, lightweight UI for quick real-time log inspection.
+
+Quick usage in Dozzle:
+1. Open `http://localhost:8088`.
+2. Select containers such as `jobmanager` or `taskmanager` to tail logs in real time.
+3. Keep Grafana for log history/correlation with metrics (Loki + Prometheus).
 
 Quick usage in Grafana:
 1. Open `http://localhost:3000` and login with `admin` / `admin`.

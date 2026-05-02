@@ -246,6 +246,16 @@ services:
     networks:
       - adt-demo
 
+  dozzle:
+    image: amir20/dozzle:v8.10.6
+    container_name: dozzle
+    ports:
+      - "8088:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - adt-demo
+
   grafana:
     image: grafana/grafana:11.1.4
     container_name: grafana

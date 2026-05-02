@@ -2,6 +2,30 @@
 
 This module processes CSV files uploaded to S3 (LocalStack) by consuming S3 object-created notifications through SQS.
 
+### Solution diagram
+
+```mermaid
+flowchart LR
+    U[Upload script\n`upload-csv-to-bucket.sh`] --> S3[(LocalStack S3\n`locations-csv-bucket`)]
+    S3 --> E[S3 ObjectCreated event]
+    E --> Q[(LocalStack SQS\n`locations-csv-events`)]
+
+    Q --> F[Flink Job\n`LocationsCsvSqsIngestionJob`]
+    F --> R[Read only new/updated CSV object]
+    R --> V[Business validation]
+
+    V -->|valid rows| ST[(PostgreSQL\n`staging_locations`)]
+    V -->|validation errors| AG[Per-file result aggregator]
+    ST --> AG
+
+    AG --> K[(Kafka topic\n`locations-file-processing-results`)]
+    K --> UI[Kafka UI\n`http://localhost:8080`]
+
+    AG --> M1[`success`]
+    AG --> M2[`partial_success` + errors]
+    AG --> M3[`fail`]
+```
+
 ### What is included
 
 - Flink job: `io.github.jlmc.flink.locationscsv.LocationsCsvSqsIngestionJob`

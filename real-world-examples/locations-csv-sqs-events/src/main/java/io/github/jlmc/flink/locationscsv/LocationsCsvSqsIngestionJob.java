@@ -1,15 +1,26 @@
 package io.github.jlmc.flink.locationscsv;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.jlmc.flink.locationscsv.application.processing.FileProcessingResultAggregator;
 import io.github.jlmc.flink.locationscsv.application.validation.LocationWithSourceBusinessValidator;
+import io.github.jlmc.flink.locationscsv.domain.entity.FileProcessingMetric;
+import io.github.jlmc.flink.locationscsv.domain.entity.FileProcessingResult;
+import io.github.jlmc.flink.locationscsv.domain.entity.ValidationErrorWithSource;
 import io.github.jlmc.flink.locationscsv.source.S3CsvObjectsFromSqsSource;
 import io.github.jlmc.flink.locationscsv.source.S3ObjectCsvReaderFlatMap;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
+import org.apache.flink.api.common.serialization.SerializationSchema;
+import org.apache.flink.connector.base.DeliveryGuarantee;
 import org.apache.flink.connector.jdbc.JdbcConnectionOptions;
 import org.apache.flink.connector.jdbc.JdbcExecutionOptions;
 import org.apache.flink.connector.jdbc.core.datastream.sink.JdbcSink;
+import org.apache.flink.connector.kafka.sink.KafkaRecordSerializationSchema;
+import org.apache.flink.connector.kafka.sink.KafkaSink;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+
+import java.nio.charset.StandardCharsets;
 
 public class LocationsCsvSqsIngestionJob {
 
@@ -22,6 +33,9 @@ public class LocationsCsvSqsIngestionJob {
     private static final String JDBC_URL = env("JDBC_URL", "jdbc:postgresql://localhost:5433/locations_db");
     private static final String JDBC_USER = env("JDBC_USER", "locations_user");
     private static final String JDBC_PASSWORD = env("JDBC_PASSWORD", "locations_password");
+
+    private static final String KAFKA_BOOTSTRAP_SERVERS = env("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092");
+    private static final String KAFKA_TOPIC = env("KAFKA_TOPIC", "locations-file-processing-results");
 
     public static void main(String[] args) throws Exception {
         final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
@@ -41,9 +55,17 @@ public class LocationsCsvSqsIngestionJob {
                 .name("location-business-validator")
                 .setParallelism(10);
 
-        validatedLocations.print("valid-locations");
+        DataStream<S3ObjectCsvReaderFlatMap.LocationWithSource> validRows = validatedLocations
+                .filter(row -> !row.endOfFile())
+                .name("valid-rows");
 
-        locationsFromSqsEvents.sinkTo(
+        DataStream<S3ObjectCsvReaderFlatMap.LocationWithSource> fileCompletedRows = validatedLocations
+                .filter(S3ObjectCsvReaderFlatMap.LocationWithSource::endOfFile)
+                .name("file-completed-markers");
+
+        validRows.print("valid-locations");
+
+        validRows.sinkTo(
                 JdbcSink.<S3ObjectCsvReaderFlatMap.LocationWithSource>builder()
                         .withQueryStatement(
                                 "INSERT INTO staging_locations (name, lat, lon, img_url, source_file_path) VALUES (?, ?, ?, ?, ?)",
@@ -72,9 +94,43 @@ public class LocationsCsvSqsIngestionJob {
                         )
         );
 
-        validatedLocations
-                .getSideOutput(LocationWithSourceBusinessValidator.ERROR_TAG)
-                .print("validation-errors");
+        DataStream<ValidationErrorWithSource> validationErrors = validatedLocations
+                .getSideOutput(LocationWithSourceBusinessValidator.ERROR_TAG);
+
+        validationErrors.print("validation-errors");
+
+        DataStream<FileProcessingMetric> validMetrics = validRows
+                .map(row -> new FileProcessingMetric(row.sourceFilePath(), FileProcessingMetric.MetricType.VALID_ROW, -1L, null))
+                .name("valid-metrics");
+
+        DataStream<FileProcessingMetric> invalidMetrics = validationErrors
+                .map(error -> new FileProcessingMetric(error.sourceFilePath(), FileProcessingMetric.MetricType.INVALID_ROW, error.line(), error.error()))
+                .name("invalid-metrics");
+
+        DataStream<FileProcessingMetric> completedMetrics = fileCompletedRows
+                .map(row -> new FileProcessingMetric(row.sourceFilePath(), FileProcessingMetric.MetricType.FILE_COMPLETED, -1L, null))
+                .name("completed-metrics");
+
+        DataStream<FileProcessingResult> fileResults = validMetrics
+                .union(invalidMetrics, completedMetrics)
+                .keyBy(FileProcessingMetric::sourceFilePath)
+                .process(new FileProcessingResultAggregator())
+                .name("file-processing-result-aggregator");
+
+        fileResults.print("file-processing-results");
+
+        KafkaSink<FileProcessingResult> resultKafkaSink = KafkaSink.<FileProcessingResult>builder()
+                .setBootstrapServers(KAFKA_BOOTSTRAP_SERVERS)
+                .setRecordSerializer(
+                        KafkaRecordSerializationSchema.builder()
+                                .setTopic(KAFKA_TOPIC)
+                                .setValueSerializationSchema(new FileProcessingResultJsonSerializer())
+                                .build()
+                )
+                .setDeliveryGuarantee(DeliveryGuarantee.AT_LEAST_ONCE)
+                .build();
+
+        fileResults.sinkTo(resultKafkaSink).name("file-results-kafka-sink");
 
         env.execute("SQS-S3-CSV-Ingestion-Job");
 
@@ -82,5 +138,18 @@ public class LocationsCsvSqsIngestionJob {
 
     private static String env(String key, String defaultValue) {
         return System.getenv().getOrDefault(key, defaultValue);
+    }
+
+    private static class FileProcessingResultJsonSerializer implements SerializationSchema<FileProcessingResult> {
+        private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+        @Override
+        public byte[] serialize(FileProcessingResult element) {
+            try {
+                return OBJECT_MAPPER.writeValueAsString(element).getBytes(StandardCharsets.UTF_8);
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to serialize file processing result", e);
+            }
+        }
     }
 }

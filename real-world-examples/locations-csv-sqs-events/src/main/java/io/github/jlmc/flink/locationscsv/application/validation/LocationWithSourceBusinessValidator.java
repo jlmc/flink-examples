@@ -1,7 +1,7 @@
 package io.github.jlmc.flink.locationscsv.application.validation;
 
 import io.github.jlmc.flink.locationscsv.domain.entity.Location;
-import io.github.jlmc.flink.locationscsv.domain.entity.ValidationError;
+import io.github.jlmc.flink.locationscsv.domain.entity.ValidationErrorWithSource;
 import io.github.jlmc.flink.locationscsv.source.S3ObjectCsvReaderFlatMap;
 import org.apache.flink.api.common.functions.OpenContext;
 import org.apache.flink.streaming.api.functions.ProcessFunction;
@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 
 public class LocationWithSourceBusinessValidator extends ProcessFunction<S3ObjectCsvReaderFlatMap.LocationWithSource, S3ObjectCsvReaderFlatMap.LocationWithSource> {
 
-    public static final OutputTag<ValidationError> ERROR_TAG = new OutputTag<ValidationError>("validation-errors") {
+    public static final OutputTag<ValidationErrorWithSource> ERROR_TAG = new OutputTag<ValidationErrorWithSource>("validation-errors") {
     };
 
     private transient List<ValidatorRule<Location>> rules;
@@ -24,6 +24,11 @@ public class LocationWithSourceBusinessValidator extends ProcessFunction<S3Objec
     public void processElement(S3ObjectCsvReaderFlatMap.LocationWithSource row,
                                ProcessFunction<S3ObjectCsvReaderFlatMap.LocationWithSource, S3ObjectCsvReaderFlatMap.LocationWithSource>.Context context,
                                Collector<S3ObjectCsvReaderFlatMap.LocationWithSource> out) {
+        if (row.endOfFile()) {
+            out.collect(row);
+            return;
+        }
+
         recordCounter++;
 
         List<ValidatorRule.Violation> allViolations = new ArrayList<>();
@@ -41,7 +46,13 @@ public class LocationWithSourceBusinessValidator extends ProcessFunction<S3Objec
 
             context.output(
                     ERROR_TAG,
-                    new ValidationError(recordCounter, raw, reason, System.currentTimeMillis())
+                    new ValidationErrorWithSource(
+                            row.sourceFilePath(),
+                            row.lineNumber(),
+                            raw,
+                            reason,
+                            System.currentTimeMillis()
+                    )
             );
         }
     }

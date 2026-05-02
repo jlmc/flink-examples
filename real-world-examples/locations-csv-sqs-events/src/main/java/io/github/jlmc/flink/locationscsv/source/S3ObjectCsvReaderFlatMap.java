@@ -57,7 +57,9 @@ public class S3ObjectCsvReaderFlatMap extends RichFlatMapFunction<S3ObjectEvent,
 
             String line;
             boolean isHeader = true;
+            long fileLineNumber = 0;
             while ((line = reader.readLine()) != null) {
+                fileLineNumber++;
                 if (line.isBlank()) {
                     continue;
                 }
@@ -76,8 +78,10 @@ public class S3ObjectCsvReaderFlatMap extends RichFlatMapFunction<S3ObjectEvent,
                         Double.valueOf(tokens[2].trim()),
                         tokens[3].trim()
                 );
-                out.collect(new LocationWithSource(location, event.key()));
+                out.collect(new LocationWithSource(location, event.key(), fileLineNumber, false));
             }
+
+            out.collect(new LocationWithSource(null, event.key(), -1L, true));
         }
     }
 
@@ -89,6 +93,6 @@ public class S3ObjectCsvReaderFlatMap extends RichFlatMapFunction<S3ObjectEvent,
         super.close();
     }
 
-    public record LocationWithSource(Location location, String sourceFilePath) implements Serializable {
+    public record LocationWithSource(Location location, String sourceFilePath, long lineNumber, boolean endOfFile) implements Serializable {
     }
 }

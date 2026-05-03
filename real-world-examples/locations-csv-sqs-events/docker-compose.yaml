@@ -134,3 +134,20 @@ services:
       - ./scripts/init-aws.sh:/etc/localstack/init-aws.sh:ro
     entrypoint: ["/bin/bash", "/etc/localstack/init-aws.sh"]
     restart: "no"
+
+  localstack_ui:
+    image: visualvincent/guistack:1.2.0
+    platform: linux/amd64
+    container_name: locations_sqs_localstack_ui
+    depends_on:
+      localstack:
+        condition: service_healthy
+    ports:
+      - "8585:80"
+    environment:
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_REGION=us-east-1
+      - AWS_S3_ENDPOINT_URL=http://localstack:4566
+      - AWS_SQS_ENDPOINT_URL=http://localstack:4566
+      - AWS_S3_FORCE_PATH_STYLE=true

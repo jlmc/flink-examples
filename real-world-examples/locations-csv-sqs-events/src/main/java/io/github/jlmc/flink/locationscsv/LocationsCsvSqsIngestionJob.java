@@ -24,6 +24,8 @@ import java.nio.charset.StandardCharsets;
 
 public class LocationsCsvSqsIngestionJob {
 
+    private static final long CHECKPOINT_INTERVAL_MS = Long.parseLong(env("CHECKPOINT_INTERVAL_MS", "5000"));
+
     private static final String AWS_ENDPOINT = env("AWS_ENDPOINT", "http://localhost:4566");
     private static final String AWS_REGION = env("AWS_REGION", "us-east-1");
     private static final String AWS_ACCESS_KEY = env("AWS_ACCESS_KEY_ID", "test");
@@ -39,7 +41,7 @@ public class LocationsCsvSqsIngestionJob {
 
     public static void main(String[] args) throws Exception {
         final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        env.enableCheckpointing(60000);
+        env.enableCheckpointing(CHECKPOINT_INTERVAL_MS);
 
         DataStream<S3ObjectCsvReaderFlatMap.LocationWithSource> locationsFromSqsEvents = env
                 .fromSource(

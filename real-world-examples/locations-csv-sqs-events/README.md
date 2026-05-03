@@ -26,6 +26,53 @@ flowchart LR
     AG --> M3[`fail`]
 ```
 
+### Pipeline steps (inputs and outputs)
+
+1. **CSV upload to S3**
+   - Input: local CSV file (for example `./input/locations-test.csv`)
+   - Output: object stored in S3 bucket `locations-csv-bucket`
+
+2. **S3 notification to SQS**
+   - Input: S3 `ObjectCreated` event
+   - Output: message in SQS queue `locations-csv-events` with bucket/key reference
+
+3. **Flink source consumes SQS events**
+   - Input: SQS message with S3 object metadata
+   - Output: stream of S3 object references to be processed
+
+4. **CSV read from S3 object**
+   - Input: S3 object reference (bucket + key)
+   - Output: stream of rows as `LocationWithSource` + end-of-file marker per file
+
+5. **Business validation**
+   - Input: `LocationWithSource` rows
+   - Output:
+     - valid rows to main stream
+     - invalid rows to side output (`ValidationErrorWithSource`)
+
+6. **Persist valid rows in PostgreSQL**
+   - Input: valid rows (`LocationWithSource`)
+   - Output: records inserted into table `staging_locations`
+
+7. **Build per-file processing metrics**
+   - Input:
+     - valid row events
+     - invalid row events
+     - file completed marker
+   - Output: unified metric stream (`FileProcessingMetric`) keyed by `sourceFilePath`
+
+8. **Aggregate per-file result**
+   - Input: keyed metrics per file (`FileProcessingMetric`)
+   - Output: one `FileProcessingResult` per file with status (`success`, `partial_success`, `fail`) and errors
+
+9. **Publish result to Kafka**
+   - Input: `FileProcessingResult`
+   - Output: JSON message in Kafka topic `locations-file-processing-results`
+
+10. **Operational visibility**
+    - Input: Kafka topic messages + application logs
+    - Output: result inspection in Kafka UI (`http://localhost:8080`) and traces in `logs/locations-csv-sqs-events.log`
+
 ### What is included
 
 - Flink job: `io.github.jlmc.flink.locationscsv.LocationsCsvSqsIngestionJob`

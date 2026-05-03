@@ -11,13 +11,15 @@ import org.apache.flink.streaming.api.functions.KeyedProcessFunction;
 import org.apache.flink.util.Collector;
 
 import java.util.ArrayList;
-import java.util.List;
 
 public class FileProcessingResultAggregator extends KeyedProcessFunction<String, FileProcessingMetric, FileProcessingResult> {
+
+    private static final long EMIT_GRACE_PERIOD_MS = 2000L;
 
     private transient ValueState<Long> validCountState;
     private transient ValueState<Long> invalidCountState;
     private transient ValueState<Boolean> completedState;
+    private transient ValueState<Long> emissionTimerState;
     private transient ListState<FileProcessingError> errorsState;
 
     @Override
@@ -26,6 +28,7 @@ public class FileProcessingResultAggregator extends KeyedProcessFunction<String,
         validCountState = getRuntimeContext().getState(new ValueStateDescriptor<>("valid-count", Long.class));
         invalidCountState = getRuntimeContext().getState(new ValueStateDescriptor<>("invalid-count", Long.class));
         completedState = getRuntimeContext().getState(new ValueStateDescriptor<>("completed", Boolean.class));
+        emissionTimerState = getRuntimeContext().getState(new ValueStateDescriptor<>("emission-timer", Long.class));
         errorsState = getRuntimeContext().getListState(new ListStateDescriptor<>("errors", FileProcessingError.class));
     }
 
@@ -39,10 +42,13 @@ public class FileProcessingResultAggregator extends KeyedProcessFunction<String,
                 invalidCountState.update(current(invalidCountState) + 1);
                 errorsState.add(new FileProcessingError(metric.line(), metric.error()));
             }
-            case FILE_COMPLETED -> {
-                completedState.update(true);
-                context.timerService().registerProcessingTimeTimer(context.timerService().currentProcessingTime() + 500);
-            }
+            case FILE_COMPLETED -> completedState.update(true);
+        }
+
+        if (Boolean.TRUE.equals(completedState.value())) {
+            long nextTimer = context.timerService().currentProcessingTime() + EMIT_GRACE_PERIOD_MS;
+            context.timerService().registerProcessingTimeTimer(nextTimer);
+            emissionTimerState.update(nextTimer);
         }
     }
 
@@ -54,12 +60,18 @@ public class FileProcessingResultAggregator extends KeyedProcessFunction<String,
             return;
         }
 
+        Long expectedTimer = emissionTimerState.value();
+        if (expectedTimer == null || timestamp != expectedTimer) {
+            return;
+        }
+
         long validCount = current(validCountState);
         long invalidCount = current(invalidCountState);
-        List<FileProcessingError> errors = new ArrayList<>();
+        ArrayList<FileProcessingError> errors = new ArrayList<>();
         for (FileProcessingError fileProcessingError : errorsState.get()) {
             errors.add(fileProcessingError);
         }
+        FileProcessingError[] errorsArray = errors.toArray(new FileProcessingError[0]);
 
         String result;
         String message;
@@ -74,11 +86,12 @@ public class FileProcessingResultAggregator extends KeyedProcessFunction<String,
             message = "all the lines are invalid";
         }
 
-        out.collect(new FileProcessingResult(ctx.getCurrentKey(), result, message, errors));
+        out.collect(new FileProcessingResult(ctx.getCurrentKey(), result, message, errorsArray));
 
         validCountState.clear();
         invalidCountState.clear();
         completedState.clear();
+        emissionTimerState.clear();
         errorsState.clear();
     }
 

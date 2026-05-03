@@ -90,6 +90,50 @@ flowchart LR
 - AWS bootstrap script: `scripts/init-aws.sh`
 - Upload helper script: `scripts/upload-csv-to-bucket.sh`
 
+### LocalStack `SERVICES` (descrição de cada serviço)
+
+> **Nota:** o serviço `localstack_ui` (GuiStack) é útil para inspeção de `S3`, `SQS` e `SNS`, mas não fornece cobertura visual para todos os serviços listados em `SERVICES`.
+
+- `acm`: gestão de certificados TLS/SSL.
+- `apigateway`: publicação e gestão de APIs HTTP/REST.
+- `cloudformation`: provisionamento de infraestrutura como código.
+- `cloudwatch`: métricas, alarms e observabilidade.
+- `config`: auditoria e histórico de configuração de recursos.
+- `dynamodb`: base de dados NoSQL chave-valor/documento.
+- `dynamodbstreams`: stream de mudanças em tabelas DynamoDB.
+- `ec2`: instâncias de computação virtual.
+- `ecr`: registry de imagens de container.
+- `ecs`: orquestração de containers.
+- `eks`: Kubernetes gerido.
+- `elasticache`: cache em memória (Redis/Memcached).
+- `elasticbeanstalk`: deploy simplificado de aplicações.
+- `elasticsearch`: motor de pesquisa (legado; usar OpenSearch).
+- `events`: EventBridge para routing de eventos.
+- `firehose`: entrega de streams para destinos (S3, etc.).
+- `iam`: identidades, utilizadores, roles e políticas.
+- `iot`: ingestão e gestão de dispositivos IoT.
+- `kinesis`: ingestão de dados em tempo real.
+- `kms`: gestão de chaves de encriptação.
+- `lambda`: execução serverless de funções.
+- `logs`: logs de aplicação (CloudWatch Logs).
+- `opensearch`: pesquisa, analytics e observabilidade.
+- `rds`: base de dados relacional gerida.
+- `redshift`: data warehouse analítico.
+- `resource-groups`: agrupamento lógico de recursos.
+- `resourcegroupstaggingapi`: consulta/gestão de tags de recursos.
+- `route53`: DNS e gestão de zonas.
+- `route53resolver`: resolução DNS híbrida e regras de forwarding.
+- `s3`: object storage (buckets/objetos).
+- `secretsmanager`: armazenamento de segredos.
+- `ses`: envio/receção de email.
+- `sns`: pub/sub por tópicos e notificações.
+- `sqs`: filas de mensagens.
+- `ssm`: gestão de parâmetros e operações de sistema.
+- `stepfunctions`: orquestração de workflows serverless.
+- `sts`: tokens temporários e assunção de roles.
+- `support`: APIs de suporte AWS (cases/plans).
+- `swf`: workflow service legado baseado em tasks.
+
 ### Start infrastructure
 
 ```bash

@@ -31,28 +31,34 @@ flowchart LR
 1. **CSV upload to S3**
    - Input: local CSV file (for example `./input/locations-test.csv`)
    - Output: object stored in S3 bucket `locations-csv-bucket`
+   - Classes/scripts: `scripts/upload-csv-to-bucket.sh`
 
 2. **S3 notification to SQS**
    - Input: S3 `ObjectCreated` event
    - Output: message in SQS queue `locations-csv-events` with bucket/key reference
+   - Classes/scripts: `scripts/init-aws.sh` (configuração do evento S3 -> SQS)
 
 3. **Flink source consumes SQS events**
    - Input: SQS message with S3 object metadata
    - Output: stream of S3 object references to be processed
+   - Classes: `io.github.jlmc.flink.locationscsv.source.S3CsvObjectsFromSqsSource`
 
 4. **CSV read from S3 object**
    - Input: S3 object reference (bucket + key)
    - Output: stream of rows as `LocationWithSource` + end-of-file marker per file
+   - Classes: `io.github.jlmc.flink.locationscsv.source.S3ObjectCsvReaderFlatMap`, `io.github.jlmc.flink.locationscsv.source.S3ObjectEvent`
 
 5. **Business validation**
    - Input: `LocationWithSource` rows
    - Output:
      - valid rows to main stream
      - invalid rows to side output (`ValidationErrorWithSource`)
+   - Classes: `io.github.jlmc.flink.locationscsv.application.validation.LocationWithSourceBusinessValidator`, `io.github.jlmc.flink.locationscsv.application.validation.LocationBusinessValidator`, `io.github.jlmc.flink.locationscsv.application.validation.GeoRangeValidator`, `io.github.jlmc.flink.locationscsv.application.validation.ImageUrlValidator`, `io.github.jlmc.flink.locationscsv.application.validation.UrlImageAccessibleValidator`
 
 6. **Persist valid rows in PostgreSQL**
    - Input: valid rows (`LocationWithSource`)
    - Output: records inserted into table `staging_locations`
+   - Classes: `org.apache.flink.connector.jdbc.core.datastream.sink.JdbcSink` (configurado em `io.github.jlmc.flink.locationscsv.LocationsCsvSqsIngestionJob`)
 
 7. **Build per-file processing metrics**
    - Input:
@@ -60,18 +66,22 @@ flowchart LR
      - invalid row events
      - file completed marker
    - Output: unified metric stream (`FileProcessingMetric`) keyed by `sourceFilePath`
+   - Classes: `io.github.jlmc.flink.locationscsv.domain.entity.FileProcessingMetric`
 
 8. **Aggregate per-file result**
    - Input: keyed metrics per file (`FileProcessingMetric`)
    - Output: one `FileProcessingResult` per file with status (`success`, `partial_success`, `fail`) and errors
+   - Classes: `io.github.jlmc.flink.locationscsv.application.processing.FileProcessingResultAggregator`, `io.github.jlmc.flink.locationscsv.domain.entity.FileProcessingResult`, `io.github.jlmc.flink.locationscsv.domain.entity.FileProcessingError`
 
 9. **Publish result to Kafka**
    - Input: `FileProcessingResult`
    - Output: JSON message in Kafka topic `locations-file-processing-results`
+   - Classes: `org.apache.flink.connector.kafka.sink.KafkaSink`, `io.github.jlmc.flink.locationscsv.LocationsCsvSqsIngestionJob.FileProcessingResultJsonSerializer`
 
 10. **Operational visibility**
     - Input: Kafka topic messages + application logs
     - Output: result inspection in Kafka UI (`http://localhost:8080`) and traces in `logs/locations-csv-sqs-events.log`
+    - Classes/config: `src/main/resources/log4j2.xml`, `io.github.jlmc.flink.locationscsv.LocationsCsvSqsIngestionJob`
 
 ### What is included
 

@@ -63,3 +63,8 @@ Set (optional) env vars:
 Then run the main class:
 
 `io.github.jlmc.flink.locationscsv.LocationsCsvSqsIngestionJob`
+
+### Logs
+
+- Runtime logs are written to `logs/locations-csv-sqs-events.log`
+- Rotated logs are written as `logs/locations-csv-sqs-events-YYYY-MM-DD-i.log.gz`

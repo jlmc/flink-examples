@@ -8,6 +8,25 @@ Este módulo apresenta um exemplo prático e detalhado de `MapState` em Apache F
 - Demonstrar o uso de `MapState` dentro de `KeyedProcessFunction`.
 - Calcular média por `courseName` dentro de cada `classId`.
 
+## Keyed State
+
+### Definição geral
+
+O keyed state é mantido como um repositório embebido de chave/valor.
+O estado é particionado e distribuído estritamente em conjunto com os streams lidos por operadores stateful.
+Por isso, o acesso ao estado chave/valor só é possível em streams com `keyBy(...)` e fica limitado aos valores associados à chave do evento atual.
+
+Ao alinhar as chaves do stream com o estado, todas as atualizações tornam-se operações locais, garantindo consistência sem overhead transacional.
+Este alinhamento também permite ao Flink redistribuir estado e ajustar o particionamento dos streams de forma transparente quando há reescala.
+
+### Tipos de interface de estado
+
+- `ValueState<T>`: mantém um único valor, com leitura via `value()` e atualização via `update(T)`.
+- `ReducingState<T>`: mantém um único valor que representa a redução/combinação de todos os valores adicionados ao estado.
+- `AggregatingState<IN, OUT>`: mantém um valor agregado; ao contrário de `ReducingState`, o tipo de saída pode ser diferente do tipo de entrada.
+- `ListState<T>`: mantém uma lista de elementos; suporta `add(T)`, `addAll(List<T>)`, `get()` e `update(List<T>)`.
+- `MapState<UK, UV>`: mantém mapeamentos chave-valor; suporta `put(UK, UV)`, `putAll(Map<UK, UV>)`, `get(UK)`, `entries()`, `keys()`, `values()` e `isEmpty()`.
+
 ## Exemplo incluído
 
 Classe principal:

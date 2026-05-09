@@ -8,6 +8,25 @@ This module provides a practical and detailed `MapState` example in Apache Flink
 - Demonstrate how to keep per-key map values in a `KeyedProcessFunction`.
 - Implement average score by `courseName` for each `classId`.
 
+## Keyed State
+
+### General definition
+
+Keyed state is maintained in what can be thought of as an embedded key/value store.
+State is partitioned and distributed strictly together with streams consumed by stateful operators.
+Therefore, access to key/value state is only possible on keyed streams (after `keyBy(...)`) and is restricted to values associated with the current event key.
+
+Aligning stream keys and state guarantees local state updates, preserving consistency without transaction overhead.
+This alignment also allows Flink to transparently redistribute state and adjust stream partitioning when scaling.
+
+### State interface types
+
+- `ValueState<T>`: keeps a single value that can be updated and retrieved via `update(T)` and `value()`.
+- `ReducingState<T>`: keeps a single value representing the reduction of all values added to the state.
+- `AggregatingState<IN, OUT>`: keeps a single aggregated value; unlike `ReducingState`, output type can differ from input type.
+- `ListState<T>`: keeps a list of elements; supports `add(T)`, `addAll(List<T>)`, `get()` and `update(List<T>)`.
+- `MapState<UK, UV>`: keeps key-value mappings; supports `put(UK, UV)`, `putAll(Map<UK, UV>)`, `get(UK)`, `entries()`, `keys()`, `values()`, and `isEmpty()`.
+
 ## Example Included
 
 Main class:

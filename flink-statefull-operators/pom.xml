@@ -20,6 +20,7 @@
         <module>stateful-and-state</module>
         <module>keyed-state</module>
         <module>map-state-details-and-practical</module>
+        <module>keyed-state-ttl-details-and-practical</module>
         <module>operator-and-broadcast-state</module>
         <module>state-backend</module>
     </modules>
